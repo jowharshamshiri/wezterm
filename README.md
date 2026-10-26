@@ -1,6 +1,6 @@
 # This fork
 
-This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm](https://github.com/wezterm/wezterm). Its `main` branch is WezTerm's `main` plus the changes below, and it is not sent upstream. [toolset](https://github.com/jowharshamshiri/toolset) builds it from source at a pinned commit and installs it on Linux, macOS, and Windows.
+This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm](https://github.com/wezterm/wezterm). Its `main` branch is WezTerm's `main` plus the changes below, and it is not sent upstream. It is built from source, on Linux, macOS, and Windows, as WezTerm is.
 
 ## Changes from WezTerm
 
@@ -9,6 +9,10 @@ This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm
 - **Drag tabs to reorder them.** Drag a tab along the tab bar with the left mouse button. From [wezterm#6527](https://github.com/wezterm/wezterm/pull/6527) by @Jefffrey, and [wezterm#7926](https://github.com/wezterm/wezterm/pull/7926) by @jayjohnston, which redraws the tab bar during the drag and adds a floating preview to the fancy tab bar.
 - **Tab widths that fit the bar.** When the retro tab bar's titles do not all fit, a title shorter than an even share keeps its full width, and the room it leaves goes to the longer titles, instead of every tab being cut to an even share (`wezterm-gui/src/tabbar.rs`, `tab_widths`).
 - **Right-clicking a tab no longer opens the tab navigator.** It opens the context menu instead (below). `ShowTabNavigator` is still available as a key assignment.
+
+### Tab and window variables
+
+- **Named values on tabs and windows that only programs set.** `wezterm cli set-tab-var NAME VALUE` and `wezterm cli set-window-var NAME VALUE` (or `--unset NAME`), and `tab:set_var()` / `window:set_var()` in Lua, store values a program recognizes a tab or window by later. `wezterm cli list --format json` reports them as `tab_vars` and `window_vars`, and Lua reads them with `get_vars()`. Unlike titles, which any program in a pane can change with an escape sequence, nothing running in the panes can touch them. A multiplexer server's values are mirrored by every GUI attached to it, and a value a GUI sets on a server's tab or window is set on the server. This changes the multiplexer protocol (codec version 47): GUIs and servers must be built from this fork alike.
 
 ### Context menu
 
@@ -34,7 +38,7 @@ These affect a window attached to a mux server, such as with `wezterm connect`:
 
 ## Keeping up with WezTerm
 
-`main` takes WezTerm's `main` by merging, never by rebasing, so every commit toolset has pinned stays on the branch.
+`main` takes WezTerm's `main` by merging, never by rebasing, so every commit of the branch stays on it, and a build of any of them can be reproduced.
 
 ---
 
