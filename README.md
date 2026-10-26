@@ -1,6 +1,6 @@
 # This fork
 
-This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm](https://github.com/wezterm/wezterm). Its `main` branch is WezTerm's `main` plus the changes below, and it is not sent upstream. It is built from source, on Linux, macOS, and Windows, as WezTerm is.
+This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm](https://github.com/wezterm/wezterm). Its `main` branch is WezTerm's `main` plus the changes below. It is built from source, on Linux, macOS, and Windows, as WezTerm is.
 
 ## Changes from WezTerm
 
@@ -35,10 +35,6 @@ These affect a window attached to a mux server, such as with `wezterm connect`:
 
 - **A re-sync takes the server's tab sizes without sending them back.** A client re-syncs whenever the server reports a tab resized, and used to send the size it had just been told back to the server as a new request. While the window was resized, tabs bounced between sizes, with the programs in them redrawing at each, and could be left at a stale size.
 - **A pane's resizes are sent one at a time, the latest size last.** Before, each one was sent on its own, unordered, and an earlier size could be the last one applied.
-
-## Keeping up with WezTerm
-
-`main` takes WezTerm's `main` by merging, never by rebasing, so every commit of the branch stays on it, and a build of any of them can be reproduced.
 
 ---
 
