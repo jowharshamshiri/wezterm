@@ -73,6 +73,7 @@ pub mod background;
 pub mod box_model;
 pub mod charselect;
 pub mod clipboard;
+pub mod contextmenu;
 pub mod keyevent;
 pub mod modal;
 mod mouseevent;
@@ -160,6 +161,9 @@ pub enum UIItemType {
     ScrollThumb,
     BelowScrollThumb,
     Split(PositionedSplit),
+    /// The right-click menu as a whole, and each of its entries by index.
+    ContextMenu,
+    ContextMenuItem(usize),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -537,6 +541,14 @@ impl TermWindow {
         self.load_os_parameters();
 
         if self.focused.is_none() {
+            // An open menu closes when the window loses focus, as menus do.
+            if self
+                .get_modal()
+                .map(|modal| modal.is::<contextmenu::ContextMenu>())
+                .unwrap_or(false)
+            {
+                self.cancel_modal();
+            }
             self.last_mouse_click = None;
             self.current_mouse_buttons.clear();
             self.current_mouse_capture = None;
@@ -2782,6 +2794,7 @@ impl TermWindow {
             ScrollToTop => self.scroll_to_top(pane),
             ScrollToBottom => self.scroll_to_bottom(pane),
             ShowTabNavigator => self.show_tab_navigator(),
+            ShowContextMenu => self.show_context_menu(),
             ShowDebugOverlay => self.show_debug_overlay(),
             ShowLauncher => self.show_launcher(),
             ShowLauncherArgs(args) => {
