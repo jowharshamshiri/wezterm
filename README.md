@@ -1,7 +1,3 @@
-# This fork
-
-This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm](https://github.com/wezterm/wezterm). Its `main` branch is WezTerm's `main` plus the changes below. It is built from source, on Linux, macOS, and Windows, as WezTerm is.
-
 ## Changes from WezTerm
 
 ### Tabs
