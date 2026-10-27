@@ -29,6 +29,10 @@ This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm
 - **That frame is counted in the window geometry.** The size the compositor suggests includes the frame, and the geometry WezTerm declares now does too. Before, resizing from a border left the terminal smaller than the window and stopped following the pointer.
 - **Resize cursors on the frame's borders and corners while hovering them**, not only once a drag has begun.
 
+### macOS
+
+- **The title bar shows the terminal's background, not the desktop.** An opaque window's background is now the color scheme's background color rather than clear. Where macOS draws the title bar translucent, it showed whatever was behind the window, leaving only the title and the window buttons visible.
+
 ### Multiplexer clients
 
 These affect a window attached to a mux server, such as with `wezterm connect`:
