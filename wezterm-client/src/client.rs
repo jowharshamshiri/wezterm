@@ -7,7 +7,7 @@ use codec::*;
 use config::{configuration, SshDomain, TlsDomainClient, UnixDomain, UnixTarget};
 use filedescriptor::FileDescriptor;
 use futures::FutureExt;
-use mux::client::ClientId;
+use mux::client::{ClientId, ClientRole};
 use mux::connui::ConnectionUI;
 use mux::domain::DomainId;
 use mux::pane::PaneId;
@@ -1193,9 +1193,12 @@ impl Client {
         self.client_domain_config
     }
 
+    /// Check that the server speaks this codec, then introduce this
+    /// client to it in `role`.
     pub async fn verify_version_compat(
         &self,
         ui: &ConnectionUI,
+        role: ClientRole,
     ) -> anyhow::Result<GetCodecVersionResponse> {
         match self
             .get_codec_version(GetCodecVersion {})
@@ -1213,7 +1216,7 @@ impl Client {
                 );
                 self.set_client_id(SetClientId {
                     client_id: self.client_id.clone(),
-                    is_proxy: false,
+                    kind: ClientKind::Client(role),
                 })
                 .await?;
                 Ok(info)
@@ -1267,7 +1270,10 @@ impl Client {
         self.local_domain_id
     }
 
-    fn compute_unix_domain(
+    /// The unix domain `wezterm cli` reaches: `WEZTERM_UNIX_SOCKET`,
+    /// else the GUI's own (unless `prefer_mux`), else the first
+    /// configured unix domain.
+    pub fn compute_unix_domain(
         prefer_mux: bool,
         class_name: &str,
     ) -> anyhow::Result<config::UnixDomain> {

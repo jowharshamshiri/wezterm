@@ -43,6 +43,7 @@ for cmd in \
     list \
     list-clients \
     move-pane-to-new-tab \
+    relay \
     rename-workspace \
     send-text \
     set-tab-title \

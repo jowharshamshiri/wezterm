@@ -39,9 +39,33 @@ impl ClientId {
     }
 }
 
+/// What a client attached to a mux is for.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ClientRole {
+    /// A GUI showing the mux's windows.
+    Gui,
+    /// A program mirroring a pane for another program
+    /// (`wezterm cli relay`); it shows no windows.
+    Relay,
+    /// A short-lived command run against the mux, such as
+    /// `wezterm start` asking a running GUI to spawn.
+    Command,
+}
+
+impl ClientRole {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Gui => "gui",
+            Self::Relay => "relay",
+            Self::Command => "command",
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]
 pub struct ClientInfo {
     pub client_id: Arc<ClientId>,
+    pub role: ClientRole,
     /// The time this client last connected
     #[serde(with = "ts_seconds")]
     pub connected_at: DateTime<Utc>,
@@ -55,9 +79,10 @@ pub struct ClientInfo {
 }
 
 impl ClientInfo {
-    pub fn new(client_id: Arc<ClientId>) -> Self {
+    pub fn new(client_id: Arc<ClientId>, role: ClientRole) -> Self {
         Self {
             client_id,
+            role,
             connected_at: Utc::now(),
             active_workspace: None,
             last_input: Utc::now(),

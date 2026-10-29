@@ -14,7 +14,7 @@
 
 use anyhow::{bail, Context as _, Error};
 use config::keyassignment::{PaneDirection, ScrollbackEraseMode};
-use mux::client::{ClientId, ClientInfo};
+use mux::client::{ClientId, ClientInfo, ClientRole};
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
 use mux::tab::{PaneNode, SerdeUrl, SplitRequest, TabId};
@@ -442,7 +442,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 47;
+pub const CODEC_VERSION: usize = 48;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -854,10 +854,21 @@ pub struct WindowWorkspaceChanged {
     pub workspace: String,
 }
 
+/// What a connection introducing itself with `SetClientId` is.
+#[derive(Deserialize, Serialize, PartialEq, Debug, Clone, Copy)]
+pub enum ClientKind {
+    /// A `wezterm cli proxy`, carrying another client's connection.
+    /// It is not registered; the client behind it introduces itself
+    /// next, and is shown as reached through the proxy.
+    Proxy,
+    /// A client, registered with the mux in this role.
+    Client(ClientRole),
+}
+
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SetClientId {
     pub client_id: ClientId,
-    pub is_proxy: bool,
+    pub kind: ClientKind,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

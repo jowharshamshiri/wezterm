@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use codec::*;
 use config::configuration;
 use config::keyassignment::ScrollbackEraseMode;
+use mux::client::ClientRole;
 use mux::domain::DomainId;
 use mux::pane::{
     alloc_pane_id, CachePolicy, CloseReason, ForEachPaneLogicalLine, LogicalLine, Pane, PaneId,
@@ -148,21 +149,24 @@ impl ClientPane {
         let config = configuration();
         let palette: ColorPalette = config.resolved_palette.clone().into();
 
-        // Advise the server of our palette preference
-        promise::spawn::spawn({
-            let palette = palette.clone();
-            let client = Arc::clone(client);
-            async move {
-                client
-                    .client
-                    .set_configured_palette_for_pane(SetPalette {
-                        pane_id: remote_pane_id,
-                        palette,
-                    })
-                    .await
-            }
-        })
-        .detach();
+        // A GUI advises the server of its palette preference; a client
+        // that shows no windows leaves the pane's palette to them.
+        if client.role == ClientRole::Gui {
+            promise::spawn::spawn({
+                let palette = palette.clone();
+                let client = Arc::clone(client);
+                async move {
+                    client
+                        .client
+                        .set_configured_palette_for_pane(SetPalette {
+                            pane_id: remote_pane_id,
+                            palette,
+                        })
+                        .await
+                }
+            })
+            .detach();
+        }
 
         Self {
             client: Arc::clone(client),

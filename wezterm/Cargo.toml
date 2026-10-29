@@ -38,6 +38,7 @@ umask.workspace = true
 url.workspace = true
 wezterm-client.workspace = true
 wezterm-gui-subcommands.workspace = true
+wezterm-input-types.workspace = true
 wezterm-term.workspace = true
 
 [target."cfg(unix)".dependencies]

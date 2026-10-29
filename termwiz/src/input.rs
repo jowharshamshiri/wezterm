@@ -198,6 +198,150 @@ pub enum KeyCode {
     InternalPasteEnd,
 }
 
+/// What a key, as `wezterm_input_types` names it, sends to a terminal.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum KeyInput {
+    /// A key the terminal encodes according to its modes.
+    Code(KeyCode),
+    /// Text an input method composed, sent as it is.
+    Composed(String),
+    /// A key that sends nothing.
+    None,
+}
+
+impl KeyInput {
+    /// The terminal input for `key`. `swap_backspace_and_delete` is the
+    /// configuration option of that name.
+    pub fn from_key_code(
+        key: &wezterm_input_types::KeyCode,
+        swap_backspace_and_delete: bool,
+    ) -> Self {
+        use wezterm_input_types::KeyCode as WK;
+        use KeyCode as KC;
+
+        let code = match key {
+            WK::Char('\r') => KC::Enter,
+            WK::Char('\t') => KC::Tab,
+            WK::Char('\u{08}') => {
+                if swap_backspace_and_delete {
+                    KC::Delete
+                } else {
+                    KC::Backspace
+                }
+            }
+            WK::Char('\u{7f}') => {
+                if swap_backspace_and_delete {
+                    KC::Backspace
+                } else {
+                    KC::Delete
+                }
+            }
+            WK::Char('\u{1b}') => KC::Escape,
+            WK::RawCode(_) => return Self::None,
+            WK::Physical(phys) => {
+                return Self::from_key_code(&phys.to_key_code(), swap_backspace_and_delete)
+            }
+
+            WK::Char(c) => KC::Char(*c),
+            WK::Composed(ref s) => {
+                let mut chars = s.chars();
+                if let Some(first_char) = chars.next() {
+                    if chars.next().is_none() {
+                        // Was just a single char after all
+                        return Self::from_key_code(
+                            &WK::Char(first_char),
+                            swap_backspace_and_delete,
+                        );
+                    }
+                }
+                return Self::Composed(s.to_owned());
+            }
+            WK::Function(f) => KC::Function(*f),
+            WK::LeftArrow => KC::LeftArrow,
+            WK::RightArrow => KC::RightArrow,
+            WK::UpArrow => KC::UpArrow,
+            WK::DownArrow => KC::DownArrow,
+            WK::Home => KC::Home,
+            WK::End => KC::End,
+            WK::PageUp => KC::PageUp,
+            WK::PageDown => KC::PageDown,
+            WK::Insert => KC::Insert,
+            WK::Hyper => KC::Hyper,
+            WK::Super => KC::Super,
+            WK::Meta => KC::Meta,
+            WK::Cancel => KC::Cancel,
+            WK::Clear => KC::Clear,
+            WK::Shift => KC::Shift,
+            WK::LeftShift => KC::LeftShift,
+            WK::RightShift => KC::RightShift,
+            WK::Control => KC::Control,
+            WK::LeftControl => KC::LeftControl,
+            WK::RightControl => KC::RightControl,
+            WK::Alt => KC::Alt,
+            WK::LeftAlt => KC::LeftAlt,
+            WK::RightAlt => KC::RightAlt,
+            WK::Pause => KC::Pause,
+            WK::CapsLock => KC::CapsLock,
+            WK::VoidSymbol => return Self::None,
+            WK::Select => KC::Select,
+            WK::Print => KC::Print,
+            WK::Execute => KC::Execute,
+            WK::PrintScreen => KC::PrintScreen,
+            WK::Help => KC::Help,
+            WK::LeftWindows => KC::LeftWindows,
+            WK::RightWindows => KC::RightWindows,
+            WK::Sleep => KC::Sleep,
+            WK::Multiply => KC::Multiply,
+            WK::Applications => KC::Applications,
+            WK::Add => KC::Add,
+            WK::Numpad(0) => KC::Numpad0,
+            WK::Numpad(1) => KC::Numpad1,
+            WK::Numpad(2) => KC::Numpad2,
+            WK::Numpad(3) => KC::Numpad3,
+            WK::Numpad(4) => KC::Numpad4,
+            WK::Numpad(5) => KC::Numpad5,
+            WK::Numpad(6) => KC::Numpad6,
+            WK::Numpad(7) => KC::Numpad7,
+            WK::Numpad(8) => KC::Numpad8,
+            WK::Numpad(9) => KC::Numpad9,
+            WK::Numpad(_) => return Self::None,
+            WK::Separator => KC::Separator,
+            WK::Subtract => KC::Subtract,
+            WK::Decimal => KC::Decimal,
+            WK::Divide => KC::Divide,
+            WK::NumLock => KC::NumLock,
+            WK::ScrollLock => KC::ScrollLock,
+            WK::Copy => KC::Copy,
+            WK::Cut => KC::Cut,
+            WK::Paste => KC::Paste,
+            WK::BrowserBack => KC::BrowserBack,
+            WK::BrowserForward => KC::BrowserForward,
+            WK::BrowserRefresh => KC::BrowserRefresh,
+            WK::BrowserStop => KC::BrowserStop,
+            WK::BrowserSearch => KC::BrowserSearch,
+            WK::BrowserFavorites => KC::BrowserFavorites,
+            WK::BrowserHome => KC::BrowserHome,
+            WK::VolumeMute => KC::VolumeMute,
+            WK::VolumeDown => KC::VolumeDown,
+            WK::VolumeUp => KC::VolumeUp,
+            WK::MediaNextTrack => KC::MediaNextTrack,
+            WK::MediaPrevTrack => KC::MediaPrevTrack,
+            WK::MediaStop => KC::MediaStop,
+            WK::MediaPlayPause => KC::MediaPlayPause,
+            WK::ApplicationLeftArrow => KC::ApplicationLeftArrow,
+            WK::ApplicationRightArrow => KC::ApplicationRightArrow,
+            WK::ApplicationUpArrow => KC::ApplicationUpArrow,
+            WK::ApplicationDownArrow => KC::ApplicationDownArrow,
+            WK::KeyPadHome => KC::KeyPadHome,
+            WK::KeyPadEnd => KC::KeyPadEnd,
+            WK::KeyPadBegin => KC::KeyPadBegin,
+            WK::KeyPadPageUp => KC::KeyPadPageUp,
+            WK::KeyPadPageDown => KC::KeyPadPageDown,
+        };
+        Self::Code(code)
+    }
+}
+
 impl KeyCode {
     /// if SHIFT is held and we have KeyCode::Char('c') we want to normalize
     /// that keycode to KeyCode::Char('C'); that is what this function does.
@@ -1474,6 +1618,57 @@ impl InputParser {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn named_keys_become_terminal_input() {
+        use wezterm_input_types::KeyCode as WK;
+        let input = |key: WK, swap| KeyInput::from_key_code(&key, swap);
+        assert_eq!(input(WK::Char('\r'), false), KeyInput::Code(KeyCode::Enter));
+        assert_eq!(input(WK::Char('\t'), false), KeyInput::Code(KeyCode::Tab));
+        assert_eq!(
+            input(WK::Char('\u{1b}'), false),
+            KeyInput::Code(KeyCode::Escape)
+        );
+        assert_eq!(
+            input(WK::Char('\u{8}'), false),
+            KeyInput::Code(KeyCode::Backspace)
+        );
+        assert_eq!(
+            input(WK::Char('\u{8}'), true),
+            KeyInput::Code(KeyCode::Delete)
+        );
+        assert_eq!(
+            input(WK::Char('\u{7f}'), false),
+            KeyInput::Code(KeyCode::Delete)
+        );
+        assert_eq!(
+            input(WK::Char('\u{7f}'), true),
+            KeyInput::Code(KeyCode::Backspace)
+        );
+        assert_eq!(
+            input(WK::Char('x'), false),
+            KeyInput::Code(KeyCode::Char('x'))
+        );
+        assert_eq!(
+            input(WK::Numpad(3), false),
+            KeyInput::Code(KeyCode::Numpad3)
+        );
+        assert_eq!(input(WK::Numpad(10), false), KeyInput::None);
+        assert_eq!(
+            input(WK::Function(5), false),
+            KeyInput::Code(KeyCode::Function(5))
+        );
+        assert_eq!(
+            input(WK::Composed("é".into()), false),
+            KeyInput::Code(KeyCode::Char('é'))
+        );
+        assert_eq!(
+            input(WK::Composed("日本".into()), false),
+            KeyInput::Composed("日本".into())
+        );
+        assert_eq!(input(WK::VoidSymbol, false), KeyInput::None);
+        assert_eq!(input(WK::RawCode(42), false), KeyInput::None);
+    }
 
     const NO_MORE: bool = false;
     const MAYBE_MORE: bool = true;

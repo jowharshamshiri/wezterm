@@ -6902,6 +6902,7 @@ dependencies = [
  "url",
  "wezterm-client",
  "wezterm-gui-subcommands",
+ "wezterm-input-types",
  "wezterm-term",
  "winapi",
 ]

@@ -1,4 +1,4 @@
-use crate::client::{ClientId, ClientInfo};
+use crate::client::{ClientId, ClientInfo, ClientRole};
 use crate::pane::{CachePolicy, Pane, PaneId};
 use crate::ssh_agent::AgentProxy;
 use crate::tab::{SplitRequest, Tab, TabId};
@@ -448,7 +448,9 @@ impl Mux {
             );
         }
 
-        let agent = if config::configuration().mux_enable_ssh_agent {
+        // A mux with no domain of its own (a proxy, a relay) runs no
+        // programs that would use the agent.
+        let agent = if default_domain.is_some() && config::configuration().mux_enable_ssh_agent {
             Some(AgentProxy::new())
         } else {
             None
@@ -584,10 +586,10 @@ impl Mux {
         Ok(())
     }
 
-    pub fn register_client(&self, client_id: Arc<ClientId>) {
+    pub fn register_client(&self, client_id: Arc<ClientId>, role: ClientRole) {
         self.clients
             .write()
-            .insert((*client_id).clone(), ClientInfo::new(client_id));
+            .insert((*client_id).clone(), ClientInfo::new(client_id, role));
     }
 
     pub fn iter_clients(&self) -> Vec<ClientInfo> {

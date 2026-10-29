@@ -42,6 +42,10 @@ impl ListClientsCommand {
                         alignment: Alignment::Right,
                     },
                     Column {
+                        name: "ROLE".to_string(),
+                        alignment: Alignment::Left,
+                    },
+                    Column {
                         name: "CONNECTED".to_string(),
                         alignment: Alignment::Left,
                     },
@@ -93,6 +97,7 @@ impl ListClientsCommand {
                         info.client_id.username.to_string(),
                         info.client_id.hostname.to_string(),
                         info.client_id.pid.to_string(),
+                        info.role.as_str().to_string(),
                         duration_string(connected),
                         duration_string(idle),
                         info.active_workspace.as_deref().unwrap_or("").to_string(),
@@ -123,6 +128,8 @@ struct CliListClientsResultItem {
     username: String,
     hostname: String,
     pid: u32,
+    /// "gui", "relay" or "command": what the client is for.
+    role: &'static str,
     connection_elapsed: std::time::Duration,
     idle_time: std::time::Duration,
     workspace: String,
@@ -140,7 +147,7 @@ impl From<mux::client::ClientInfo> for CliListClientsResultItem {
             active_workspace,
             focused_pane_id,
             client_id,
-            ..
+            role,
         } = client_info;
 
         let mux::client::ClientId {
@@ -158,6 +165,7 @@ impl From<mux::client::ClientInfo> for CliListClientsResultItem {
             username: username.to_string(),
             hostname: hostname.to_string(),
             pid: *pid,
+            role: role.as_str(),
             connection_elapsed: connection_elapsed
                 .to_std()
                 .unwrap_or(std::time::Duration::ZERO),

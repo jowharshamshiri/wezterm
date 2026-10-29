@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use codec::{ListPanesResponse, SpawnV2, SplitPane};
 use config::keyassignment::SpawnTabDomain;
 use config::{SshDomain, TlsDomainClient, UnixDomain};
+use mux::client::ClientRole;
 use mux::connui::{ConnectionUI, ConnectionUIParams};
 use mux::domain::{alloc_domain_id, Domain, DomainId, DomainState, SplitSource};
 use mux::pane::{Pane, PaneId};
@@ -20,6 +21,7 @@ use wezterm_term::TerminalSize;
 pub struct ClientInner {
     pub client: Client,
     pub local_domain_id: DomainId,
+    pub role: ClientRole,
     pub local_echo_threshold_ms: Option<u64>,
     pub overlay_lag_indicator: bool,
     remote_to_local_window: Mutex<HashMap<WindowId, WindowId>>,
@@ -234,12 +236,14 @@ impl ClientInner {
     pub fn new(
         local_domain_id: DomainId,
         client: Client,
+        role: ClientRole,
         local_echo_threshold_ms: Option<u64>,
         overlay_lag_indicator: bool,
     ) -> Self {
         Self {
             client,
             local_domain_id,
+            role,
             local_echo_threshold_ms,
             overlay_lag_indicator,
             remote_to_local_window: Mutex::new(HashMap::new()),
@@ -255,6 +259,7 @@ pub struct ClientDomain {
     label: String,
     inner: Mutex<Option<Arc<ClientInner>>>,
     local_domain_id: DomainId,
+    role: ClientRole,
 }
 
 async fn update_remote_workspace(
@@ -440,7 +445,11 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
 }
 
 impl ClientDomain {
-    pub fn new(config: ClientDomainConfig) -> Self {
+    /// A domain whose attachment registers with the server in `role`.
+    /// A `Gui` domain shows its own connection progress in a window and
+    /// advises the server of its palette for every pane; a `Relay` one
+    /// does neither, and never starts a server that is not running.
+    pub fn new(config: ClientDomainConfig, role: ClientRole) -> Self {
         let local_domain_id = alloc_domain_id();
         let label = config.label();
         Mux::get().subscribe(move |notif| mux_notify_client_domain(local_domain_id, notif));
@@ -449,6 +458,7 @@ impl ClientDomain {
             label,
             inner: Mutex::new(None),
             local_domain_id,
+            role,
         }
     }
 
@@ -824,6 +834,7 @@ impl ClientDomain {
         let inner = Arc::new(ClientInner::new(
             domain_id,
             client,
+            domain.role,
             threshold,
             overlay_lag_indicator,
         ));
@@ -1034,12 +1045,16 @@ impl Domain for ClientDomain {
 
         let domain_id = self.local_domain_id;
         let config = self.config.clone();
+        let role = self.role;
 
         let activity = mux::activity::Activity::new();
-        let ui = ConnectionUI::with_params(ConnectionUIParams {
-            window_id,
-            ..Default::default()
-        });
+        let ui = match role {
+            ClientRole::Gui => ConnectionUI::with_params(ConnectionUIParams {
+                window_id,
+                ..Default::default()
+            }),
+            ClientRole::Relay | ClientRole::Command => ConnectionUI::new_headless(),
+        };
         ui.title("wezterm: Connecting...");
 
         ui.async_run_and_log_error({
@@ -1049,7 +1064,7 @@ impl Domain for ClientDomain {
                 let client = spawn_into_new_thread(move || match &config {
                     ClientDomainConfig::Unix(unix) => {
                         let initial = true;
-                        let no_auto_start = false;
+                        let no_auto_start = role != ClientRole::Gui;
                         Client::new_unix_domain(
                             Some(domain_id),
                             unix,
@@ -1064,7 +1079,7 @@ impl Domain for ClientDomain {
                 .await?;
 
                 ui.output_str("Checking server version\n");
-                client.verify_version_compat(&ui).await?;
+                client.verify_version_compat(&ui, role).await?;
 
                 ui.output_str("Version check OK!  Requesting pane list...\n");
                 let panes = client.list_panes().await?;

@@ -305,16 +305,9 @@ impl SessionHandler {
             }
             Pdu::SetClientId(SetClientId {
                 mut client_id,
-                is_proxy,
+                kind,
             }) => {
-                if is_proxy {
-                    if self.proxy_client_id.is_none() {
-                        // Copy proxy identity, but don't assign it to the mux;
-                        // we'll use it to annotate the actual clients own
-                        // identity when they send it
-                        self.proxy_client_id.replace(client_id);
-                    }
-                } else {
+                if let ClientKind::Client(role) = kind {
                     // If this session is a proxy, override the incoming id with
                     // the proxy information so that it is clear what is going
                     // on from the `wezterm cli list-clients` information
@@ -330,9 +323,14 @@ impl SessionHandler {
                     self.client_id.replace(client_id.clone());
                     spawn_into_main_thread(async move {
                         let mux = Mux::get();
-                        mux.register_client(client_id);
+                        mux.register_client(client_id, role);
                     })
                     .detach();
+                } else if self.proxy_client_id.is_none() {
+                    // Copy proxy identity, but don't assign it to the mux;
+                    // we'll use it to annotate the actual clients own
+                    // identity when they send it
+                    self.proxy_client_id.replace(client_id);
                 }
                 send_response(Ok(Pdu::UnitResponse(UnitResponse {})))
             }
