@@ -211,6 +211,7 @@ fn a_relay_mirrors_a_pane_and_types_into_it() {
     );
     assert_eq!(hello["palette"]["ansi"].as_array().unwrap().len(), 16);
     assert_eq!(hello["title"], "cat");
+    assert_eq!(hello["sized_by_input"], false);
 
     let clients: Vec<Value> =
         serde_json::from_str(&server.cli(&["list-clients", "--format", "json"])).unwrap();
@@ -252,7 +253,7 @@ fn a_relay_sized_by_input_resizes_its_pane() {
     let server = Server::start();
     let pane = server.panes()[0]["pane_id"].as_u64().unwrap();
     let mut relay = server.relay(pane, &["--sized-by-input"]);
-    relay.expect("hello");
+    assert_eq!(relay.expect("hello")["sized_by_input"], true);
     relay.send(json!({"t": "resize", "cols": 30, "rows": 6}));
     let size = relay.expect("size");
     assert_eq!(
