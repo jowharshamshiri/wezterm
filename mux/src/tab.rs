@@ -2591,9 +2591,15 @@ mod test {
         assert_eq!(tab.get_vars(), vars(&[]));
         tab.set_var("session.id", Some("a1"));
         tab.set_var("other", Some("x"));
-        assert_eq!(tab.get_vars(), vars(&[("other", "x"), ("session.id", "a1")]));
+        assert_eq!(
+            tab.get_vars(),
+            vars(&[("other", "x"), ("session.id", "a1")])
+        );
         tab.set_var("session.id", Some("b2"));
-        assert_eq!(tab.get_vars(), vars(&[("other", "x"), ("session.id", "b2")]));
+        assert_eq!(
+            tab.get_vars(),
+            vars(&[("other", "x"), ("session.id", "b2")])
+        );
         tab.set_var("session.id", None);
         assert_eq!(tab.get_vars(), vars(&[("other", "x")]));
         // Removing a variable that is not there changes nothing.
