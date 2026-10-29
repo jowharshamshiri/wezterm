@@ -14,6 +14,7 @@ mod list;
 mod list_clients;
 mod move_pane_to_new_tab;
 mod proxy;
+mod relay;
 mod rename_workspace;
 mod send_text;
 mod set_tab_title;
@@ -85,6 +86,12 @@ enum CliSubCommand {
 
     #[command(name = "proxy", about = "start rpc proxy pipe")]
     Proxy(proxy::ProxyCommand),
+
+    /// Relay a pane to another program over stdin and stdout: its screen
+    /// as escape sequences, and keys, text, paste and mouse back as
+    /// events, one JSON object per line.
+    #[command(name = "relay", rename_all = "kebab")]
+    Relay(relay::RelayCommand),
 
     #[command(name = "tlscreds", about = "obtain tls credentials")]
     TlsCreds(tls_creds::TlsCredsCommand),
@@ -198,6 +205,7 @@ async fn run_cli_async(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()>
         CliSubCommand::GetText(cmd) => cmd.run(client).await,
         CliSubCommand::SpawnCommand(cmd) => cmd.run(client, &crate::init_config(opts)?).await,
         CliSubCommand::Proxy(cmd) => cmd.run(client, &crate::init_config(opts)?).await,
+        CliSubCommand::Relay(_) => unreachable!("run_cli runs the relay on its own executor"),
         CliSubCommand::TlsCreds(cmd) => cmd.run(client).await,
         CliSubCommand::ActivatePaneDirection(cmd) => cmd.run(client).await,
         CliSubCommand::GetPaneDirection(cmd) => cmd.run(client).await,
@@ -215,6 +223,16 @@ async fn run_cli_async(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()>
 }
 
 pub fn run_cli(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()> {
+    if let CliSubCommand::Relay(cmd) = cli.sub {
+        let class = cli
+            .class
+            .as_deref()
+            .unwrap_or(wezterm_gui_subcommands::DEFAULT_WINDOW_CLASS);
+        return match relay::run(opts, cli.prefer_mux, class, cmd) {
+            Ok(()) => Ok(()),
+            Err(err) => crate::terminate_with_error(err),
+        };
+    }
     let executor = promise::spawn::ScopedExecutor::new();
     match promise::spawn::block_on(executor.run(async move { run_cli_async(opts, cli).await })) {
         Ok(_) => Ok(()),

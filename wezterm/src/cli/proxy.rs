@@ -1,5 +1,5 @@
 use clap::Parser;
-use codec::{Pdu, SetClientId};
+use codec::{ClientKind, Pdu, SetClientId};
 use config::ConfigHandle;
 use mux::activity::Activity;
 use mux::client::ClientId;
@@ -32,7 +32,7 @@ impl ProxyCommand {
 
         let pdu = Pdu::SetClientId(SetClientId {
             client_id: ClientId::new(),
-            is_proxy: true,
+            kind: ClientKind::Proxy,
         });
         let serial = 1;
         pdu.encode(&mut stream, serial)?;

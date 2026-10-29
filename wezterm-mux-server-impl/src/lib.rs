@@ -1,4 +1,5 @@
 use config::{ConfigHandle, SshMultiplexing};
+use mux::client::ClientRole;
 use mux::domain::{Domain, LocalDomain};
 use mux::ssh::RemoteSshDomain;
 use mux::Mux;
@@ -44,7 +45,7 @@ fn update_mux_domains_impl(config: &ConfigHandle, is_standalone_mux: bool) -> an
             continue;
         }
 
-        let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config));
+        let domain: Arc<dyn Domain> = Arc::new(ClientDomain::new(client_config, ClientRole::Gui));
         mux.add_domain(&domain);
     }
 

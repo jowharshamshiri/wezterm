@@ -1,0 +1,8 @@
+Relay a pane to another program over stdin and stdout: its screen as escape sequences, and keys, text, paste and mouse back as events, one JSON object per line
+
+Usage: wezterm cli relay [OPTIONS] --pane-id <PANE_ID>
+
+Options:
+      --pane-id <PANE_ID>  The pane to relay, as `wezterm cli list` shows it
+      --sized-by-input     Let `resize` events size the pane. Without it the pane keeps the size its other clients give it, and `resize` is refused
+  -h, --help               Print help

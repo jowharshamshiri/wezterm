@@ -12,7 +12,7 @@ This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm
 
 ### Tab and window variables
 
-- **Named values on tabs and windows that only programs set.** `wezterm cli set-tab-var NAME VALUE` and `wezterm cli set-window-var NAME VALUE` (or `--unset NAME`), and `tab:set_var()` / `window:set_var()` in Lua, store values a program recognizes a tab or window by later. `wezterm cli list --format json` reports them as `tab_vars` and `window_vars`, and Lua reads them with `get_vars()`. Unlike titles, which any program in a pane can change with an escape sequence, nothing running in the panes can touch them. A multiplexer server's values are mirrored by every GUI attached to it, and a value a GUI sets on a server's tab or window is set on the server. This changes the multiplexer protocol (codec version 47): GUIs and servers must be built from this fork alike.
+- **Named values on tabs and windows that only programs set.** `wezterm cli set-tab-var NAME VALUE` and `wezterm cli set-window-var NAME VALUE` (or `--unset NAME`), and `tab:set_var()` / `window:set_var()` in Lua, store values a program recognizes a tab or window by later. `wezterm cli list --format json` reports them as `tab_vars` and `window_vars`, and Lua reads them with `get_vars()`. Unlike titles, which any program in a pane can change with an escape sequence, nothing running in the panes can touch them. A multiplexer server's values are mirrored by every GUI attached to it, and a value a GUI sets on a server's tab or window is set on the server. This changes the multiplexer protocol.
 
 ### Context menu
 
@@ -33,12 +33,21 @@ This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm
 
 - **The title bar shows the terminal's background, not the desktop.** An opaque window's background is now the color scheme's background color rather than clear. Where macOS draws the title bar translucent, it showed whatever was behind the window, leaving only the title and the window buttons visible.
 
+### Relaying a pane
+
+- **`wezterm cli relay --pane-id ID` lets another program show a pane and type into it**: a terminal emulator in a web page, for instance. The relay attaches to the multiplexer as a GUI does and writes the pane's screen as escape sequences, a full paint and then only what changed, one JSON event per line on stdout. It reads keys, text, paste and mouse events on stdin, and the multiplexer encodes them with the modes of the terminal in the pane, so the program in it receives what a keyboard would send. It never resizes the pane unless started with `--sized-by-input`, and never takes focus. Scrollback, title, clipboard (OSC 52), bell and the pane's colors come through as events too ([docs](docs/cli/cli/relay.md)).
+- **Clients say what they are for.** A client attaching to a multiplexer registers as a `gui`, a `relay`, or a short-lived `command`, and `wezterm cli list-clients` shows it, so a program can tell whether a GUI is showing a multiplexer's windows. A relay, which shows no windows, also leaves the panes' colors to the GUIs, where a GUI tells the server the colors it uses for every pane.
+- **A key is turned into terminal input in one place** (`termwiz::input::KeyInput`), which the GUI and the relay share.
+- **A multiplexer with no domain of its own makes no ssh-agent link.** `wezterm cli proxy` and the relay run no programs that would use one, and each run used to leave an `agent.PID` link behind in the runtime directory.
+
 ### Multiplexer clients
 
 These affect a window attached to a mux server, such as with `wezterm connect`:
 
 - **A re-sync takes the server's tab sizes without sending them back.** A client re-syncs whenever the server reports a tab resized, and used to send the size it had just been told back to the server as a new request. While the window was resized, tabs bounced between sizes, with the programs in them redrawing at each, and could be left at a stale size.
 - **A pane's resizes are sent one at a time, the latest size last.** Before, each one was sent on its own, unordered, and an earlier size could be the last one applied.
+
+Several of these change the multiplexer protocol (codec version 48): GUIs, servers and `wezterm cli` must be built from this fork alike.
 
 ---
 

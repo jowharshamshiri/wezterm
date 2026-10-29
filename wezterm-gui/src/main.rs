@@ -553,7 +553,9 @@ impl Publish {
                     let executor = promise::spawn::ScopedExecutor::new();
                     let command = cmd.clone();
                     let res = block_on(executor.run(async move {
-                        let vers = client.verify_version_compat(&mut ui).await?;
+                        let vers = client
+                            .verify_version_compat(&mut ui, mux::client::ClientRole::Command)
+                            .await?;
 
                         if vers.executable_path != std::env::current_exe().context("resolve executable path")? {
                             *self = Publish::NoConnectNoPublish;
@@ -682,7 +684,7 @@ fn setup_mux(
     let mux = Arc::new(mux::Mux::new(Some(local_domain.clone())));
     Mux::set_mux(&mux);
     let client_id = Arc::new(mux::client::ClientId::new());
-    mux.register_client(client_id.clone());
+    mux.register_client(client_id.clone(), mux::client::ClientRole::Gui);
     mux.replace_identity(Some(client_id));
     let default_workspace_name = default_workspace_name.unwrap_or(
         config
