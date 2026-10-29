@@ -1,7 +1,3 @@
-# This fork
-
-This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm](https://github.com/wezterm/wezterm). Its `main` branch is WezTerm's `main` plus the changes below. It is built from source, on Linux, macOS, and Windows, as WezTerm is.
-
 ## Changes from WezTerm
 
 ### Tabs
@@ -13,6 +9,15 @@ This is [jowharshamshiri](https://github.com/jowharshamshiri)'s fork of [WezTerm
 ### Tab and window variables
 
 - **Named values on tabs and windows that only programs set.** `wezterm cli set-tab-var NAME VALUE` and `wezterm cli set-window-var NAME VALUE` (or `--unset NAME`), and `tab:set_var()` / `window:set_var()` in Lua, store values a program recognizes a tab or window by later. `wezterm cli list --format json` reports them as `tab_vars` and `window_vars`, and Lua reads them with `get_vars()`. Unlike titles, which any program in a pane can change with an escape sequence, nothing running in the panes can touch them. A multiplexer server's values are mirrored by every GUI attached to it, and a value a GUI sets on a server's tab or window is set on the server. This changes the multiplexer protocol.
+
+### Window placement and zoom in Lua
+
+- **What a configuration needs to give a new window the placement and zoom an earlier one had**, which WezTerm keeps only while a window is open:
+  - `window:get_position()` reports the top left of the window's content area, in the coordinates `window:set_position()` takes, so moving a window to its reported position leaves it where it is. On Wayland, which tells applications nothing of where their windows are, it returns `nil` ([docs](docs/config/lua/window/get_position.md)).
+  - `window:get_dimensions()` also reports `is_maximized` ([docs](docs/config/lua/window/get_dimensions.md)).
+  - `window:get_font_scale()` and `window:set_font_scale(scale)` read and set the zoom that IncreaseFontSize, DecreaseFontSize and ResetFontSize change ([docs](docs/config/lua/window/get_font_scale.md), [docs](docs/config/lua/window/set_font_scale.md)).
+  - A window applies the changes Lua asks of it, `set_inner_size`, `set_font_scale`, `set_position`, `maximize`, `restore` and `toggle_fullscreen`, in the order asked. Before, a move or a maximize went straight to the window and could overtake a resize asked for first.
+- **On X11 a window declares static gravity** in its size hints, the meaning `set_position` gives a position: where the content area goes, not the frame the window manager draws around it. The window manager reads a window's position by the window's gravity whenever it configures it; declaring none, a window placed with `set_position` was placed by its frame, a title bar lower, the next time it was resized or restored from maximized (Openbox does this).
 
 ### Context menu
 
