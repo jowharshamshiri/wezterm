@@ -106,13 +106,15 @@ pub fn run(
 #[derive(Debug, Serialize, PartialEq)]
 #[serde(tag = "t", rename_all = "snake_case")]
 pub enum Out {
-    /// First, once: the pane's size, colors, title and mouse mode.
+    /// First, once: the pane's size, colors, title and mouse mode, and
+    /// whether `resize` events size it (`--sized-by-input`).
     Hello {
         cols: usize,
         rows: usize,
         palette: Palette,
         title: String,
         mouse_grab: bool,
+        sized_by_input: bool,
     },
     /// Escape sequences that bring a terminal of the pane's size from
     /// what the relay last sent to what the pane shows now.
@@ -568,6 +570,7 @@ impl Relay {
             palette: Palette::from(&self.pane.palette()),
             title: self.title.clone(),
             mouse_grab: self.mouse_grab,
+            sized_by_input: self.sized_by_input,
         })?;
         self.frame(out)
     }

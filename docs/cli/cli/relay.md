@@ -32,7 +32,7 @@ The relay writes:
 
 | `t` | Fields | Meaning |
 |---|---|---|
-| `hello` | `cols`, `rows`, `palette`, `title`, `mouse_grab` | First, once. `palette` holds `foreground`, `background`, `cursor_fg`, `cursor_bg`, `cursor_border`, `selection_fg`, `selection_bg` and the 16 `ansi` colors, as `#rrggbb`. |
+| `hello` | `cols`, `rows`, `palette`, `title`, `mouse_grab`, `sized_by_input` | First, once. `palette` holds `foreground`, `background`, `cursor_fg`, `cursor_bg`, `cursor_border`, `selection_fg`, `selection_bg` and the 16 `ansi` colors, as `#rrggbb`. `sized_by_input` says whether `resize` events size the pane. |
 | `screen` | `data` | Escape sequences that bring a terminal of the pane's size from what was last sent to what the pane shows. |
 | `size` | `cols`, `rows` | The pane was resized; a full paint follows. |
 | `title` | `text` | The pane's title changed. |
@@ -61,7 +61,7 @@ relay goes on.
 
 ```console
 $ wezterm cli relay --pane-id 0
-{"t":"hello","cols":80,"rows":24,"palette":{...},"title":"bash","mouse_grab":false}
+{"t":"hello","cols":80,"rows":24,"palette":{...},"title":"bash","mouse_grab":false,"sized_by_input":false}
 {"t":"screen","data":"\u001b[H\u001b[2J..."}
 {"t":"text","text":"ls"}
 {"t":"key","key":"Enter"}
