@@ -33,6 +33,7 @@
 - **A window frame on desktops that leave decorations to the application, such as GNOME.** WezTerm draws its own title bar and borders when the compositor refuses server-side decorations, rather than showing no frame at all. Dragging an empty part of the tab bar moves the window. From [wezterm#8145](https://github.com/wezterm/wezterm/pull/8145) by @AlexKichkailo.
 - **That frame is counted in the window geometry.** The size the compositor suggests includes the frame, and the geometry WezTerm declares now does too. Before, resizing from a border left the terminal smaller than the window and stopped following the pointer.
 - **Resize cursors on the frame's borders and corners while hovering them**, not only once a drag has begun.
+- **A click on the title bar stays on the title bar.** Clicking the frame of a window that did not have the keyboard selected the tab under the click as well: the keyboard entering the window replaced the surface pointer events were sent to, so the press went to the terminal at the title bar's coordinates, which are the tab bar's. Each pointer event now goes to the surface it arrived on.
 
 ### macOS
 
