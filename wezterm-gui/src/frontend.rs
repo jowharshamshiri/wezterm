@@ -442,6 +442,10 @@ impl GuiFrontEnd {
                 if let Err(err) = TermWindow::new_window(mux_window_id).await {
                     log::error!("Failed to create window: {:#}", err);
                     let mux = Mux::get();
+                    // A window that cannot be shown is no reason to end the programs a
+                    // server runs in it: detach their domains first, so that removing
+                    // the window here kills only panes of its own.
+                    mux.detach_window_domains(mux_window_id);
                     mux.kill_window(mux_window_id);
                     front_end()
                         .spawned_mux_window

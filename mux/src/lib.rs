@@ -875,34 +875,44 @@ impl Mux {
 
         let window = self.windows.write().remove(&window_id);
         if let Some(window) = window {
-            // Gather all the domains referenced by this window
-            let mut domains_of_window = HashSet::new();
-            for tab in window.iter_tabs() {
-                for pane in tab.iter_panes_ignoring_zoom() {
-                    domains_of_window.insert(pane.pane.domain_id());
-                }
-            }
-
-            for domain_id in domains_of_window {
-                if let Some(domain) = self.get_domain(domain_id) {
-                    if domain.detachable() {
-                        log::info!("detaching domain");
-                        if let Err(err) = domain.detach() {
-                            log::error!(
-                                "while detaching domain {domain_id} {}: {err:#}",
-                                domain.domain_name()
-                            );
-                        }
-                    }
-                }
-            }
-
+            // Closing a window closes its tabs, as closing each of them would, whatever
+            // domain they are in: the panes of a domain attached from a server are
+            // killed in the server. Detaching the domain instead took every other
+            // window of that domain away with this one.
             for tab in window.iter_tabs() {
                 self.remove_tab_internal(tab.tab_id());
             }
             self.notify(MuxNotification::WindowRemoved(window_id));
         }
         self.recompute_pane_count();
+    }
+
+    /// Detach the detachable domains of the panes in a window, leaving those panes
+    /// running wherever their domain keeps them, along with every other window of
+    /// those domains.
+    pub fn detach_window_domains(&self, window_id: WindowId) {
+        let mut domains_of_window = HashSet::new();
+        if let Some(window) = self.get_window(window_id) {
+            for tab in window.iter_tabs() {
+                for pane in tab.iter_panes_ignoring_zoom() {
+                    domains_of_window.insert(pane.pane.domain_id());
+                }
+            }
+        }
+
+        for domain_id in domains_of_window {
+            if let Some(domain) = self.get_domain(domain_id) {
+                if domain.detachable() {
+                    log::info!("detaching domain");
+                    if let Err(err) = domain.detach() {
+                        log::error!(
+                            "while detaching domain {domain_id} {}: {err:#}",
+                            domain.domain_name()
+                        );
+                    }
+                }
+            }
+        }
     }
 
     pub fn remove_pane(&self, pane_id: PaneId) {

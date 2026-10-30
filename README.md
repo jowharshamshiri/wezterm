@@ -51,6 +51,7 @@ These affect a window attached to a mux server, such as with `wezterm connect`:
 
 - **A re-sync takes the server's tab sizes without sending them back.** A client re-syncs whenever the server reports a tab resized, and used to send the size it had just been told back to the server as a new request. While the window was resized, tabs bounced between sizes, with the programs in them redrawing at each, and could be left at a stale size.
 - **A pane's resizes are sent one at a time, the latest size last.** Before, each one was sent on its own, unordered, and an earlier size could be the last one applied.
+- **Closing a window closes its tabs.** Closing a window whose tabs a server holds kills those tabs in the server, as closing each tab does. Before, it detached the window from the server's whole domain instead: every other window of that server disappeared with it, and the programs in all of them, the closed window's included, ran on. Quitting WezTerm still leaves a server's programs running. A window WezTerm fails to create still detaches its domain, so a failure ends no programs.
 
 Several of these change the multiplexer protocol (codec version 48): GUIs, servers and `wezterm cli` must be built from this fork alike.
 
