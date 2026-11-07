@@ -23,6 +23,11 @@ struct Server {
 impl Server {
     /// A server whose first pane runs `cat`, 40x10.
     fn start() -> Self {
+        Self::running(&["cat"])
+    }
+
+    /// A server whose first pane runs `program`, 40x10.
+    fn running(program: &[&str]) -> Self {
         // A unix socket path is limited to about 100 bytes.
         let dir = tempfile::Builder::new()
             .prefix("relay")
@@ -50,7 +55,8 @@ impl Server {
         command
             .args(["--config-file"])
             .arg(&config)
-            .args(["--", "cat"]);
+            .arg("--")
+            .args(program);
         let child = Self::environment(&mut command, dir.path(), &socket, &config)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -140,6 +146,24 @@ impl Server {
             child,
             rx,
             screen: String::new(),
+        }
+    }
+}
+
+impl Server {
+    /// Wait until the pane shows `text`.
+    fn wait_for_text(&self, pane: u64, text: &str) {
+        let deadline = Instant::now() + WAIT;
+        loop {
+            let shown = self.cli(&["get-text", "--pane-id", &pane.to_string()]);
+            if shown.contains(text) {
+                return;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "the pane never showed {text:?}; it shows {shown:?}"
+            );
+            std::thread::sleep(Duration::from_millis(50));
         }
     }
 }
@@ -309,4 +333,46 @@ fn a_relay_for_a_pane_that_does_not_exist_fails() {
     let error = relay.expect("error");
     assert!(error["message"].as_str().unwrap().contains("no pane 999"));
     assert!(!relay.child.wait().unwrap().success());
+}
+
+#[test]
+fn a_relay_whose_input_ends_delivers_what_it_was_given_first_in_order() {
+    // The program in the pane takes bracketed pastes and records the bytes it
+    // reads, raw, until it has as many as a paste of "hello\nworld" and an
+    // Enter make.
+    let expected = "\u{1b}[200~hello\nworld\u{1b}[201~\r";
+    let dir = tempfile::tempdir().unwrap();
+    let record = dir.path().join("record");
+    let script = format!(
+        "stty raw -echo; printf '\\033[?2004hready'; head -c {} > '{}'; sleep 60",
+        expected.len(),
+        record.display()
+    );
+    let server = Server::running(&["sh", "-c", &script]);
+    let pane = server.panes()[0]["pane_id"].as_u64().unwrap();
+    server.wait_for_text(pane, "ready");
+
+    // The input ends as soon as the paste and the Enter are written, before
+    // the relay has so much as said hello.
+    let mut relay = server.relay(pane, &[]);
+    relay.send(json!({"t": "paste", "text": "hello\nworld"}));
+    relay.send(json!({"t": "key", "key": "Enter"}));
+    relay.stdin.take();
+    let status = relay.child.wait().unwrap();
+    assert!(status.success(), "the relay exited with {status}");
+
+    let deadline = Instant::now() + WAIT;
+    loop {
+        let got = std::fs::read(&record).unwrap_or_default();
+        if got.len() >= expected.len() {
+            assert_eq!(String::from_utf8_lossy(&got), expected);
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "the pane received only {:?}",
+            String::from_utf8_lossy(&got)
+        );
+        std::thread::sleep(Duration::from_millis(50));
+    }
 }

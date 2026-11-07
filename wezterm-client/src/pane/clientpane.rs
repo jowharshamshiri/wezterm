@@ -20,6 +20,7 @@ use rangeset::RangeSet;
 use ratelim::RateLimiter;
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
+use std::future::Future;
 use std::ops::Range;
 use std::sync::Arc;
 use termwiz::input::KeyEvent;
@@ -65,6 +66,19 @@ struct Resizes {
     /// reports another size, which a request must then put right.
     applied: Option<TerminalSize>,
     in_flight: bool,
+    /// Who waits for the requests in flight to end (`resize_request`): told
+    /// how, once no request is left to send.
+    waiters: Vec<smol::channel::Sender<Result<(), String>>>,
+}
+
+impl Resizes {
+    /// No request is in flight any more; `outcome` is how the last ended.
+    fn settle(&mut self, outcome: Result<(), String>) {
+        self.in_flight = false;
+        for waiter in self.waiters.drain(..) {
+            waiter.try_send(outcome.clone()).ok();
+        }
+    }
 }
 
 /// Send `resizes.wanted` until the server has applied it, one request at a time.
@@ -78,7 +92,7 @@ async fn send_resizes(
         let size = {
             let mut state = resizes.lock();
             if Some(state.wanted) == state.applied {
-                state.in_flight = false;
+                state.settle(Ok(()));
                 return;
             }
             state.wanted
@@ -95,8 +109,9 @@ async fn send_resizes(
         match result {
             Ok(_) => state.applied = Some(size),
             Err(err) => {
-                log::error!("resizing remote pane {remote_pane_id} to {size:?}: {err:#}");
-                state.in_flight = false;
+                let message = format!("resizing remote pane {remote_pane_id} to {size:?}: {err:#}");
+                log::error!("{message}");
+                state.settle(Err(message));
                 return;
             }
         }
@@ -104,6 +119,110 @@ async fn send_resizes(
 }
 
 impl ClientPane {
+    /// Sends a paste to the server's pane, as `send_paste` does. The future
+    /// ends once the server has taken it, or with why it did not; requests
+    /// sent one after the other's end reach the pane in that order.
+    pub fn paste_request(&self, text: &str) -> impl Future<Output = anyhow::Result<()>> + 'static {
+        {
+            let renderable = self.renderable.lock();
+            let mut inner = renderable.inner.borrow_mut();
+            inner.predict_from_paste(text);
+            inner.update_last_send();
+        }
+        let client = Arc::clone(&self.client);
+        let pane_id = self.remote_pane_id;
+        let data = text.to_owned();
+        async move {
+            client
+                .client
+                .send_paste(SendPaste { pane_id, data })
+                .await?;
+            Ok(())
+        }
+    }
+
+    /// Sends a key press to the server's pane, as `key_down` does; the future
+    /// ends as `paste_request`'s does.
+    pub fn key_down_request(
+        &self,
+        key: KeyCode,
+        mods: KeyModifiers,
+    ) -> impl Future<Output = anyhow::Result<()>> + 'static {
+        let input_serial;
+        {
+            let renderable = self.renderable.lock();
+            let mut inner = renderable.inner.borrow_mut();
+            inner.input_serial = InputSerial::now();
+            input_serial = inner.input_serial;
+            inner.predict_from_key_event(key, mods);
+            inner.update_last_send();
+        }
+        let client = Arc::clone(&self.client);
+        let pane_id = self.remote_pane_id;
+        async move {
+            client
+                .client
+                .key_down(SendKeyDown {
+                    pane_id,
+                    event: KeyEvent {
+                        key,
+                        modifiers: mods,
+                    },
+                    input_serial,
+                })
+                .await?;
+            Ok(())
+        }
+    }
+
+    /// Sends a mouse event to the server's pane. Unlike `mouse_event`, which
+    /// merges the moves and wheel turns it has not sent yet, it sends the
+    /// event as it is; the future ends as `paste_request`'s does.
+    pub fn mouse_event_request(
+        &self,
+        event: MouseEvent,
+    ) -> impl Future<Output = anyhow::Result<()>> + 'static {
+        self.renderable.lock().inner.borrow_mut().update_last_send();
+        let client = Arc::clone(&self.client);
+        let pane_id = self.remote_pane_id;
+        async move {
+            client
+                .client
+                .mouse_event(SendMouseEvent { pane_id, event })
+                .await?;
+            Ok(())
+        }
+    }
+
+    /// Asks the server to size the pane, as `resize` does. The future ends
+    /// once no size is left to send, or with why the last request failed.
+    pub fn resize_request(
+        &self,
+        size: TerminalSize,
+    ) -> anyhow::Result<impl Future<Output = anyhow::Result<()>> + 'static> {
+        self.resize(size)?;
+        let waiting = {
+            let mut resizes = self.resizes.lock();
+            if resizes.in_flight {
+                let (tx, rx) = smol::channel::bounded(1);
+                resizes.waiters.push(tx);
+                Some(rx)
+            } else {
+                None
+            }
+        };
+        Ok(async move {
+            match waiting {
+                None => Ok(()),
+                Some(rx) => rx
+                    .recv()
+                    .await
+                    .map_err(|_| anyhow::anyhow!("the client stopped resizing the pane"))?
+                    .map_err(anyhow::Error::msg),
+            }
+        })
+    }
+
     pub fn new(
         client: &Arc<ClientInner>,
         remote_tab_id: TabId,
@@ -187,6 +306,7 @@ impl ClientPane {
                 wanted: size,
                 applied: Some(size),
                 in_flight: false,
+                waiters: vec![],
             })),
             ignore_next_kill: Mutex::new(false),
             unseen_output: Mutex::new(false),
@@ -393,26 +513,7 @@ impl Pane for ClientPane {
     }
 
     fn send_paste(&self, text: &str) -> anyhow::Result<()> {
-        let client = Arc::clone(&self.client);
-        let remote_pane_id = self.remote_pane_id;
-        self.renderable
-            .lock()
-            .inner
-            .borrow_mut()
-            .predict_from_paste(text);
-
-        let data = text.to_owned();
-        promise::spawn::spawn(async move {
-            client
-                .client
-                .send_paste(SendPaste {
-                    pane_id: remote_pane_id,
-                    data,
-                })
-                .await
-        })
-        .detach();
-        self.renderable.lock().inner.borrow_mut().update_last_send();
+        promise::spawn::spawn(self.paste_request(text)).detach();
         Ok(())
     }
 
@@ -521,31 +622,7 @@ impl Pane for ClientPane {
     }
 
     fn key_down(&self, key: KeyCode, mods: KeyModifiers) -> anyhow::Result<()> {
-        let input_serial;
-        {
-            let renderable = self.renderable.lock();
-            let mut inner = renderable.inner.borrow_mut();
-            inner.input_serial = InputSerial::now();
-            input_serial = inner.input_serial;
-            inner.predict_from_key_event(key, mods);
-        }
-        let client = Arc::clone(&self.client);
-        let remote_pane_id = self.remote_pane_id;
-        promise::spawn::spawn(async move {
-            client
-                .client
-                .key_down(SendKeyDown {
-                    pane_id: remote_pane_id,
-                    event: KeyEvent {
-                        key,
-                        modifiers: mods,
-                    },
-                    input_serial,
-                })
-                .await
-        })
-        .detach();
-        self.renderable.lock().inner.borrow_mut().update_last_send();
+        promise::spawn::spawn(self.key_down_request(key, mods)).detach();
         Ok(())
     }
 

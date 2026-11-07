@@ -16,6 +16,11 @@
 //! pane keeps the size and focus the other clients give it.
 //!
 //! Both directions are JSON, one object per line, told apart by `t`.
+//!
+//! Input reaches the pane in the order it was read: each request to the
+//! multiplexer is sent once the one before has been taken. When stdin ends,
+//! the relay sends what it still holds before it exits, and a request the
+//! multiplexer refused makes it exit with an error.
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
@@ -27,7 +32,9 @@ use mux::renderable::StableCursorPosition;
 use mux::{Mux, MuxNotification};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
+use std::future::Future;
 use std::io::{BufRead, Read, Write};
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
 use termwiz::cell::CellAttributes;
@@ -38,6 +45,7 @@ use termwiz::render::RenderTty;
 use termwiz::surface::{Change, CursorShape, CursorVisibility, Position, Surface};
 use wezterm_client::client::Client;
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
+use wezterm_client::pane::ClientPane;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
     Alert, KeyCode, KeyModifiers, Line, MouseButton, MouseEvent, MouseEventKind, StableRowIndex,
@@ -144,7 +152,8 @@ pub enum Out {
     Bell,
     /// The pane is gone; the relay ends.
     Exit,
-    /// An input line was refused, or the relay failed.
+    /// An input line was refused, an event did not reach the pane, or the
+    /// relay failed.
     Error {
         message: String,
     },
@@ -434,6 +443,33 @@ enum Event {
     Input(String),
     InputFailed(String),
     InputEnded,
+    /// A request to the pane failed; the message names it.
+    RequestFailed(String),
+}
+
+/// A request to the pane, and what it was for, to name it if it fails.
+struct Request {
+    what: String,
+    send: Pin<Box<dyn Future<Output = anyhow::Result<()>>>>,
+}
+
+/// Sends the requests in the order they come, each once the one before has
+/// ended, so the pane receives them in that order; `failed` hears of each
+/// that failed as it does. Ends once `queue` is closed and every request in
+/// it has been sent, with the failures.
+async fn send_requests(
+    queue: smol::channel::Receiver<Request>,
+    failed: impl Fn(&str),
+) -> Vec<String> {
+    let mut failures = vec![];
+    while let Ok(request) = queue.recv().await {
+        if let Err(err) = request.send.await {
+            let message = format!("{} did not reach the pane: {:#}", request.what, err);
+            failed(&message);
+            failures.push(message);
+        }
+    }
+    failures
 }
 
 async fn relay<W: Write>(
@@ -455,6 +491,9 @@ async fn relay<W: Write>(
     let pane = mux
         .get_pane(local_id)
         .ok_or_else(|| anyhow!("pane {} went away while attaching", cmd.pane_id))?;
+    if pane.downcast_ref::<ClientPane>().is_none() {
+        bail!("pane {} is not a multiplexer client's pane", cmd.pane_id);
+    }
 
     let (tx, rx) = smol::channel::unbounded::<Event>();
 
@@ -518,13 +557,43 @@ async fn relay<W: Write>(
     })
     .detach();
 
-    let mut relay = Relay::new(pane, cmd.sized_by_input, tx);
-    relay.hello(out)?;
-    while let Ok(event) = rx.recv().await {
-        match relay.handle(event, out)? {
-            Flow::Continue => {}
-            Flow::Stop => break,
+    let (requests, queue) = smol::channel::unbounded::<Request>();
+    let sender = promise::spawn::spawn({
+        let tx = tx.clone();
+        send_requests(queue, move |message| {
+            tx.try_send(Event::RequestFailed(message.to_string())).ok();
+        })
+    });
+
+    let mut relay = Relay::new(pane, cmd.sized_by_input, tx, requests);
+    let result: anyhow::Result<()> = async {
+        relay.hello(out)?;
+        while let Ok(event) = rx.recv().await {
+            match relay.handle(event, out)? {
+                Flow::Continue => {}
+                Flow::Stop => break,
+            }
         }
+        Ok(())
+    }
+    .await;
+
+    // Whatever ended the relay, the requests it made are sent first, in
+    // order; dropping the relay closes their queue.
+    let reported = relay.failures_reported;
+    drop(relay);
+    let failures = sender.await;
+    for message in &failures[reported..] {
+        out.send(&Out::Error {
+            message: message.clone(),
+        })?;
+    }
+    result?;
+    if !failures.is_empty() {
+        bail!(
+            "{} of the input events did not reach the pane",
+            failures.len()
+        );
     }
     Ok(())
 }
@@ -538,6 +607,10 @@ struct Relay {
     pane: Arc<dyn Pane>,
     sized_by_input: bool,
     tx: smol::channel::Sender<Event>,
+    /// The requests to the pane, which `send_requests` sends in order.
+    requests: smol::channel::Sender<Request>,
+    /// How many failed requests have been written out as errors.
+    failures_reported: usize,
     screen: Screen,
     /// The stable row at the top of the view while it is scrolled back;
     /// `None` follows the bottom of the pane.
@@ -548,9 +621,16 @@ struct Relay {
 }
 
 impl Relay {
-    fn new(pane: Arc<dyn Pane>, sized_by_input: bool, tx: smol::channel::Sender<Event>) -> Self {
+    fn new(
+        pane: Arc<dyn Pane>,
+        sized_by_input: bool,
+        tx: smol::channel::Sender<Event>,
+        requests: smol::channel::Sender<Request>,
+    ) -> Self {
         let dims = pane.get_dimensions();
         Self {
+            requests,
+            failures_reported: 0,
             screen: Screen::new(dims.cols, dims.viewport_rows),
             title: pane.get_title(),
             mouse_grab: pane.is_mouse_grabbed(),
@@ -612,6 +692,10 @@ impl Relay {
             }
             Event::InputFailed(message) => bail!(message),
             Event::InputEnded => return Ok(Flow::Stop),
+            Event::RequestFailed(message) => {
+                self.failures_reported += 1;
+                out.send(&Out::Error { message })?;
+            }
         }
         Ok(Flow::Continue)
     }
@@ -629,25 +713,57 @@ impl Relay {
         .detach();
     }
 
+    /// The pane, as the multiplexer client's pane it was checked to be when
+    /// the relay started.
+    fn client_pane(&self) -> &ClientPane {
+        self.pane
+            .downcast_ref::<ClientPane>()
+            .expect("the relay checked its pane is a client's when it started")
+    }
+
+    /// Queues a request to the pane, behind those already made.
+    fn request(
+        &self,
+        what: String,
+        send: impl Future<Output = anyhow::Result<()>> + 'static,
+    ) -> anyhow::Result<()> {
+        self.requests
+            .try_send(Request {
+                what,
+                send: Box::pin(send),
+            })
+            .map_err(|_| anyhow!("the relay no longer sends requests to the pane"))
+    }
+
     fn input<W: Write>(&mut self, line: &str, out: &mut Output<W>) -> anyhow::Result<()> {
         let input: In = serde_json::from_str(line).context("an input line is not a relay event")?;
         let swap = config::configuration().swap_backspace_and_delete;
         match input {
-            In::Key { key, mods } => {
-                let (key, mods) = key_input(&key, &mods, swap)?;
+            In::Key { key: name, mods } => {
+                let (key, mods) = key_input(&name, &mods, swap)?;
                 self.follow_bottom(out)?;
-                self.pane.key_down(key, mods)?;
+                let send = self.client_pane().key_down_request(key, mods);
+                self.request(format!("the key {name:?}"), send)?;
             }
             In::Text { text } => {
+                // Every character is checked before any is sent.
+                let keys = text
+                    .chars()
+                    .map(|c| key_input(&c.to_string(), "", swap))
+                    .collect::<anyhow::Result<Vec<_>>>()?;
                 self.follow_bottom(out)?;
-                for c in text.chars() {
-                    let (key, mods) = key_input(&c.to_string(), "", swap)?;
-                    self.pane.key_down(key, mods)?;
+                for (c, (key, mods)) in text.chars().zip(keys) {
+                    let send = self.client_pane().key_down_request(key, mods);
+                    self.request(format!("the typed {c:?}"), send)?;
                 }
             }
             In::Paste { text } => {
                 self.follow_bottom(out)?;
-                self.pane.send_paste(&text)?;
+                let send = self.client_pane().paste_request(&text);
+                self.request(
+                    format!("a paste of {} characters", text.chars().count()),
+                    send,
+                )?;
             }
             In::Mouse {
                 kind,
@@ -662,7 +778,8 @@ impl Relay {
                 }
                 let event = mouse_event(kind, x, y, button, &mods)?;
                 self.follow_bottom(out)?;
-                self.pane.mouse_event(event)?;
+                let send = self.client_pane().mouse_event_request(event);
+                self.request(format!("a mouse {kind:?} at ({x}, {y})"), send)?;
             }
             In::Scroll { rows } => {
                 let dims = self.pane.get_dimensions();
@@ -681,13 +798,14 @@ impl Relay {
                     bail!("a pane cannot be {cols}x{rows}");
                 }
                 let dims = self.pane.get_dimensions();
-                self.pane.resize(TerminalSize {
+                let send = self.client_pane().resize_request(TerminalSize {
                     cols,
                     rows,
                     pixel_width: 0,
                     pixel_height: 0,
                     dpi: dims.dpi,
                 })?;
+                self.request(format!("a resize to {cols}x{rows}"), send)?;
             }
             In::Repaint => {
                 self.screen.invalidate();
@@ -970,6 +1088,49 @@ mod test {
         assert_eq!(event.modifiers, KeyModifiers::SHIFT);
         let wheel = mouse_event(MouseKind::Press, 0, 0, Button::WheelUp, "").unwrap();
         assert_eq!(wheel.button, MouseButton::WheelUp(1));
+    }
+
+    #[test]
+    fn requests_are_sent_one_after_another_and_every_failure_is_named() {
+        use std::cell::RefCell;
+        use std::rc::Rc;
+        let log = Rc::new(RefCell::new(vec![]));
+        let (requests, queue) = smol::channel::unbounded();
+        for (n, fails) in [(1, false), (2, true), (3, false)] {
+            let log = Rc::clone(&log);
+            requests
+                .try_send(Request {
+                    what: format!("request {n}"),
+                    send: Box::pin(async move {
+                        log.borrow_mut().push(format!("start {n}"));
+                        // A request that takes a while must still end before
+                        // the next starts.
+                        smol::future::yield_now().await;
+                        smol::future::yield_now().await;
+                        log.borrow_mut().push(format!("end {n}"));
+                        if fails {
+                            bail!("the pane is gone");
+                        }
+                        Ok(())
+                    }),
+                })
+                .unwrap();
+        }
+        // The queue closes with requests still in it: they are sent all the same.
+        drop(requests);
+        let heard = RefCell::new(vec![]);
+        let failures = smol::block_on(send_requests(queue, |message| {
+            heard.borrow_mut().push(message.to_string())
+        }));
+        assert_eq!(
+            *log.borrow(),
+            vec!["start 1", "end 1", "start 2", "end 2", "start 3", "end 3"]
+        );
+        assert_eq!(
+            failures,
+            vec!["request 2 did not reach the pane: the pane is gone".to_string()]
+        );
+        assert_eq!(heard.into_inner(), failures);
     }
 
     #[test]

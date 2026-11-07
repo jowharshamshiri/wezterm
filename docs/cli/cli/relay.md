@@ -24,6 +24,13 @@ the relay with the role `relay`.
 
 It ends when its input ends, or with an `exit` event when the pane does.
 
+Input reaches the pane in the order the relay read it: the relay sends each
+key, paste, mouse event and resize once the multiplexer has taken the one
+before. When its input ends, the relay first sends everything it has read, so
+a program may write its last events and close the relay's stdin at once. An
+event the multiplexer did not take is reported with an `error` event naming
+it, and a relay that ends with such events left exits with a failure status.
+
 ## Events
 
 Both directions carry one JSON object per line, told apart by its `t` field.
@@ -41,7 +48,7 @@ The relay writes:
 | `palette` | `palette` | The pane's colors changed. |
 | `bell` | | The program rang the bell. |
 | `exit` | | The pane is gone. |
-| `error` | `message` | An input line was refused, or the relay failed. |
+| `error` | `message` | An input line was refused, an event did not reach the pane, or the relay failed. |
 
 The relay reads:
 
