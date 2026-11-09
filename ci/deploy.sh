@@ -40,7 +40,7 @@ case $OSTYPE in
     cp -r assets/shell-completion $app/Contents/Resources
     tic -x -o $app/Contents/Resources/terminfo termwiz/data/wsb-wezterm.terminfo
 
-    for bin in wsb-wezterm wsb-wezterm-mux-server wsb-wezterm-gui strip-ansi-escapes ; do
+    for bin in wsb-wezterm wsb-wezterm-mux-server wsb-wezterm-gui wsb-wezterm-strip-ansi-escapes ; do
       # A plain `cargo build --release` makes a package for one architecture.
       if [[ -f $TARGET_DIR/release/$bin ]] ; then
         cp $TARGET_DIR/release/$bin $app/Contents/MacOS/$bin
@@ -101,7 +101,7 @@ case $OSTYPE in
     cp $TARGET_DIR/release/wsb-wezterm.exe \
       $TARGET_DIR/release/wsb-wezterm-mux-server.exe \
       $TARGET_DIR/release/wsb-wezterm-gui.exe \
-      $TARGET_DIR/release/strip-ansi-escapes.exe \
+      $TARGET_DIR/release/wsb-wezterm-strip-ansi-escapes.exe \
       $TARGET_DIR/release/wsb_wezterm.pdb \
       assets/windows/conhost/conpty.dll \
       assets/windows/conhost/OpenConsole.exe \
@@ -127,7 +127,7 @@ case $OSTYPE in
 Name: wsb-wezterm
 Version: ${WSB_WEZTERM_RPM_VERSION}
 Release: 1.${distroid}${distver}
-Packager: Bahram Shamshiri <jowharshamshiri@gmail.com>
+Packager: Bahram Joharshamshiri <jowharshamshiri@gmail.com>
 License: MIT
 URL: https://github.com/jowharshamshiri/wsb-wezterm
 Summary: wsb-wezterm, a fork of WezTerm.
@@ -182,7 +182,7 @@ install -Dm755 assets/open-wsb-wezterm-here -t %{buildroot}/usr/bin
 install -Dsm755 $TARGET_DIR/release/wsb-wezterm -t %{buildroot}/usr/bin
 install -Dsm755 $TARGET_DIR/release/wsb-wezterm-gui -t %{buildroot}/usr/bin
 install -Dsm755 $TARGET_DIR/release/wsb-wezterm-mux-server -t %{buildroot}/usr/bin
-install -Dsm755 $TARGET_DIR/release/strip-ansi-escapes -t %{buildroot}/usr/bin
+install -Dsm755 $TARGET_DIR/release/wsb-wezterm-strip-ansi-escapes -t %{buildroot}/usr/bin
 install -Dm644 assets/shell-integration/* -t %{buildroot}/etc/profile.d
 install -Dm644 assets/shell-completion/zsh %{buildroot}/usr/share/zsh/site-functions/_wsb-wezterm
 install -Dm644 assets/shell-completion/bash %{buildroot}/etc/bash_completion.d/wsb-wezterm
@@ -196,7 +196,7 @@ install -Dm644 assets/wsb-wezterm-nautilus.py %{buildroot}/usr/share/nautilus-py
 
 %files -n wsb-wezterm-common
 /usr/bin/wsb-wezterm
-/usr/bin/strip-ansi-escapes
+/usr/bin/wsb-wezterm-strip-ansi-escapes
 /usr/share/zsh/site-functions/_wsb-wezterm
 /etc/bash_completion.d/wsb-wezterm
 /etc/profile.d/*
@@ -223,7 +223,7 @@ EOF
 Package: wsb-wezterm
 Version: ${TAG_NAME}
 Architecture: $(dpkg-architecture -q DEB_BUILD_ARCH_CPU)
-Maintainer: Bahram Shamshiri <jowharshamshiri@gmail.com>
+Maintainer: Bahram Joharshamshiri <jowharshamshiri@gmail.com>
 Section: utils
 Priority: optional
 Homepage: https://github.com/jowharshamshiri/wsb-wezterm
@@ -232,6 +232,7 @@ Description: wsb-wezterm, a fork of WezTerm.
  support for modern features such as fonts with ligatures, hyperlinks,
  tabs and multiple windows.
 Provides: x-terminal-emulator
+Source: wsb-wezterm
 EOF
 
         cat > pkg/debian/postinst <<EOF
@@ -254,7 +255,7 @@ EOF
         install -Dsm755 -t pkg/debian/usr/bin $TARGET_DIR/release/wsb-wezterm-gui
         install -Dsm755 -t pkg/debian/usr/bin $TARGET_DIR/release/wsb-wezterm
         install -Dm755 -t pkg/debian/usr/bin assets/open-wsb-wezterm-here
-        install -Dsm755 -t pkg/debian/usr/bin $TARGET_DIR/release/strip-ansi-escapes
+        install -Dsm755 -t pkg/debian/usr/bin $TARGET_DIR/release/wsb-wezterm-strip-ansi-escapes
 
         deps=$(cd pkg && dpkg-shlibdeps -O -e debian/usr/bin/*)
         mv pkg/debian/postinst pkg/debian/DEBIAN/postinst
@@ -262,6 +263,7 @@ EOF
         mv pkg/debian/prerm pkg/debian/DEBIAN/prerm
         chmod 0755 pkg/debian/DEBIAN/prerm
         mv pkg/debian/control pkg/debian/DEBIAN/control
+        sed -i '/^Source:/d' pkg/debian/DEBIAN/control  # The `Source:` field needs to be valid in a binary package
         echo $deps | sed -e 's/shlibs:Depends=/Depends: /' >> pkg/debian/DEBIAN/control
         cat pkg/debian/DEBIAN/control
 
@@ -297,7 +299,7 @@ EOF
         export SUDO=''
         abuild-keygen -a -n -b 8192
         cat > APKBUILD <<EOF
-# Maintainer: Bahram Shamshiri <jowharshamshiri@gmail.com>
+# Maintainer: Bahram Joharshamshiri <jowharshamshiri@gmail.com>
 pkgname=wsb-wezterm
 pkgver=$(echo "$TAG_NAME" | cut -d'-' -f1-2 | tr - .)
 _pkgver=$pkgver

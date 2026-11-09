@@ -1,6 +1,6 @@
 [book]
 title = "wsb-wezterm"
-author = "Wez Furlong (WezTerm); Bahram Shamshiri (wsb-wezterm)"
+author = "Wez Furlong (WezTerm); Bahram Joharshamshiri (wsb-wezterm)"
 src = "."
 
 [build]

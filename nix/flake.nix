@@ -167,8 +167,8 @@
                 # if the binaries are inside of it. Move them there
                 # and create symbolic links for them in bin/.
                 mkdir -p "$OUT_APP/Contents/MacOS"
-                mv $out/bin/{wsb-wezterm,wsb-wezterm-mux-server,wsb-wezterm-gui,strip-ansi-escapes} "$OUT_APP/Contents/MacOS"
-                ln -s "$OUT_APP/Contents/MacOS"/{wsb-wezterm,wsb-wezterm-mux-server,wsb-wezterm-gui,strip-ansi-escapes} "$out/bin"
+                mv $out/bin/{wsb-wezterm,wsb-wezterm-mux-server,wsb-wezterm-gui,wsb-wezterm-strip-ansi-escapes} "$OUT_APP/Contents/MacOS"
+                ln -s "$OUT_APP/Contents/MacOS"/{wsb-wezterm,wsb-wezterm-mux-server,wsb-wezterm-gui,wsb-wezterm-strip-ansi-escapes} "$out/bin"
               '';
 
             preBuild = ''

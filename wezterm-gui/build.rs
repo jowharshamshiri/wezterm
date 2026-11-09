@@ -118,7 +118,7 @@ BEGIN
     BEGIN
         BLOCK "040904E4"
         BEGIN
-            VALUE "CompanyName",      "Bahram Shamshiri\0"
+            VALUE "CompanyName",      "Bahram Joharshamshiri\0"
             VALUE "FileDescription",  "wsb-wezterm, a fork of WezTerm\0"
             VALUE "FileVersion",      "{version}\0"
             VALUE "LegalCopyright",   "Wez Furlong, MIT licensed\0"

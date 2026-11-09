@@ -7,6 +7,10 @@ publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "wsb-wezterm-strip-ansi-escapes"
+path = "src/main.rs"
+
 [dependencies]
 clap.workspace = true
 termwiz.workspace = true

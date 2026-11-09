@@ -8,7 +8,7 @@ mkdir AppDir
 install -Dsm755 -t AppDir/usr/bin target/release/wsb-wezterm-mux-server
 install -Dsm755 -t AppDir/usr/bin target/release/wsb-wezterm
 install -Dsm755 -t AppDir/usr/bin target/release/wsb-wezterm-gui
-install -Dsm755 -t AppDir/usr/bin target/release/strip-ansi-escapes
+install -Dsm755 -t AppDir/usr/bin target/release/wsb-wezterm-strip-ansi-escapes
 install -Dm644 assets/icon/terminal.png AppDir/usr/share/icons/hicolor/128x128/apps/com.bahramj.wsb-wezterm.png
 install -Dm644 assets/wsb-wezterm.desktop AppDir/usr/share/applications/com.bahramj.wsb-wezterm.desktop
 install -Dm644 assets/wsb-wezterm.appdata.xml AppDir/usr/share/metainfo/com.bahramj.wsb-wezterm.appdata.xml

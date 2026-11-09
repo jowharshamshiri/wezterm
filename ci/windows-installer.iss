@@ -4,7 +4,7 @@
 
 #define MyAppName "wsb-wezterm"
 ;#define MyAppVersion "1.5"
-#define MyAppPublisher "Bahram Shamshiri"
+#define MyAppPublisher "Bahram Joharshamshiri"
 #define MyAppURL "https://github.com/jowharshamshiri/wsb-wezterm"
 #define MyAppExeName "wsb-wezterm-gui.exe"
 
@@ -51,7 +51,7 @@ Source: "..\target\release\libEGL.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\libGLESv2.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\conpty.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\target\release\OpenConsole.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\target\release\strip-ansi-escapes.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\target\release\wsb-wezterm-strip-ansi-escapes.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

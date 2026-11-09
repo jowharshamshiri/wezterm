@@ -29,11 +29,11 @@ trim_file() {
   perl -0777 -pe 's/^\n+|\n\K\n+$//g'
 }
 
-cargo run --example narrow $bin/wsb-wezterm --help | $bin/strip-ansi-escapes | trim_file > docs/examples/cmd-synopsis-wsb-wezterm--help.txt
+cargo run --example narrow $bin/wsb-wezterm --help | $bin/wsb-wezterm-strip-ansi-escapes | trim_file > docs/examples/cmd-synopsis-wsb-wezterm--help.txt
 
 for cmd in start ssh serial connect ls-fonts show-keys imgcat set-working-directory record replay  ; do
   fname="docs/examples/cmd-synopsis-wsb-wezterm-${cmd}--help.txt"
-  cargo run --example narrow $bin/wsb-wezterm $cmd --help | $bin/strip-ansi-escapes | trim_file > $fname
+  cargo run --example narrow $bin/wsb-wezterm $cmd --help | $bin/wsb-wezterm-strip-ansi-escapes | trim_file > $fname
 done
 
 for cmd in \
@@ -59,5 +59,5 @@ for cmd in \
     zoom-pane \
     ; do
   fname="docs/examples/cmd-synopsis-wsb-wezterm-cli-${cmd}--help.txt"
-  cargo run --example narrow $bin/wsb-wezterm cli $cmd --help | $bin/strip-ansi-escapes | trim_file > $fname
+  cargo run --example narrow $bin/wsb-wezterm cli $cmd --help | $bin/wsb-wezterm-strip-ansi-escapes | trim_file > $fname
 done

@@ -34,7 +34,7 @@ string.
 * `wsb-wezterm-gui` - the GUI portion of the terminal
 * `wsb-wezterm` - the CLI and frontend that knows how to launch the GUI. It is
   desirable to have this available to both the multiplexer server and the gui.
-* `strip-ansi-escapes` - a utility that can filter escapes out of stdin; useful
+* `wsb-wezterm-strip-ansi-escapes` - a utility that can filter escapes out of stdin; useful
   for de-fanging text when composing eg: OSC 0/1 title text.
 
 ## Additional Resources
