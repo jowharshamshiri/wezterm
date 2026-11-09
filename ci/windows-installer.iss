@@ -7,6 +7,10 @@
 #define MyAppPublisher "Bahram Joharshamshiri"
 #define MyAppURL "https://github.com/jowharshamshiri/wsb-wezterm"
 #define MyAppExeName "wsb-wezterm-gui.exe"
+; The folder cargo built into: deploy.sh passes it as /DTargetDir.
+#ifndef TargetDir
+  #define TargetDir "..\target"
+#endif
 
 [Setup]
 AppId={{2C993885-3914-49CB-8A16-9BCEA3A5A3D6}
@@ -43,15 +47,15 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "..\target\release\wsb-wezterm.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\target\release\wsb-wezterm-gui.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\target\release\wsb-wezterm-mux-server.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\target\release\mesa\opengl32.dll"; DestDir: "{app}\mesa"; Flags: ignoreversion
-Source: "..\target\release\libEGL.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\target\release\libGLESv2.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\target\release\conpty.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\target\release\OpenConsole.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\target\release\wsb-wezterm-strip-ansi-escapes.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#TargetDir}\release\wsb-wezterm.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#TargetDir}\release\wsb-wezterm-gui.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#TargetDir}\release\wsb-wezterm-mux-server.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#TargetDir}\release\mesa\opengl32.dll"; DestDir: "{app}\mesa"; Flags: ignoreversion
+Source: "{#TargetDir}\release\libEGL.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#TargetDir}\release\libGLESv2.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#TargetDir}\release\conpty.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#TargetDir}\release\OpenConsole.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#TargetDir}\release\wsb-wezterm-strip-ansi-escapes.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
