@@ -16,18 +16,18 @@ information on this key assignment.
 
 ### Log Files
 
-You can find log files in `$XDG_RUNTIME_DIR/wezterm` on unix systems,
-or `$HOME/.local/share/wezterm` on macOS and Windows systems.
+You can find log files in `$XDG_RUNTIME_DIR/wsb-wezterm` on unix systems,
+or `$HOME/.local/share/wsb-wezterm` on macOS and Windows systems.
 
 ### Increasing Log Verbosity
 
-The `WEZTERM_LOG` environment variable can be used to adjust the level
-of logging for different modules within wezterm.
+The `WSB_WEZTERM_LOG` environment variable can be used to adjust the level
+of logging for different modules within wsb-wezterm.
 
-To see maximum verbosity, you can start wezterm like this:
+To see maximum verbosity, you can start wsb-wezterm like this:
 
 ```
-WEZTERM_LOG=debug wezterm
+WSB_WEZTERM_LOG=debug wsb-wezterm
 ```
 
 to see debug level logs for everything on stdout.
@@ -37,24 +37,24 @@ On Windows systems you'll usually need to set the environment variable separatel
 Using `cmd.exe`:
 
 ```
-C:\> set WEZTERM_LOG=debug
-C:\> wezterm
+C:\> set WSB_WEZTERM_LOG=debug
+C:\> wsb-wezterm
 ```
 
 Using powershell:
 
 ```
-PS C:\> $env:WEZTERM_LOG="debug"
-PS C:\> wezterm
+PS C:\> $env:WSB_WEZTERM_LOG="debug"
+PS C:\> wsb-wezterm
 ```
 
 When using a flatpak you must first enter the flatpak container by running:
 
 ```
-flatpak run --command=sh --devel org.wezfurlong.wezterm
+flatpak run --command=sh --devel com.bahramj.wsb-wezterm
 ```
 
-Before then running `wezterm`.
+Before then running `wsb-wezterm`.
 
 Each log line will include the module name, which is a colon separated
 namespace; in the output below the modules are `config`,
@@ -70,14 +70,14 @@ namespace; in the output below the modules are `config`,
 ```
 
 Those modules generally match up to directories and file names within the
-wezterm source code, or to external modules that wezterm depends upon.
+wsb-wezterm source code, or to external modules that wsb-wezterm depends upon.
 
 You can set a more restrictive filter to focus in on just the things you want.
 For example, if you wanted to debug only configuration related things you might
 set:
 
 ```
-WEZTERM_LOG=config=debug,info
+WSB_WEZTERM_LOG=config=debug,info
 ```
 
 which says:
@@ -88,7 +88,7 @@ which says:
 You can add more comma-separated items:
 
 ```
-WEZTERM_LOG=config=debug,wezterm_font=debug,info
+WSB_WEZTERM_LOG=config=debug,wezterm_font=debug,info
 ```
 
 See Rust's [env_logger
@@ -100,7 +100,7 @@ for more details on the syntax/possibilities.
 Turn on [debug_key_events](config/lua/config/debug_key_events.md) to log
 information about key presses.
 
-Use [wezterm show-keys](cli/show-keys.md) or `wezterm show-keys --lua` to show
+Use [wsb-wezterm show-keys](cli/show-keys.md) or `wsb-wezterm show-keys --lua` to show
 the effective set of key and mouse assignments defined by your config.
 
 Consider changing [use_ime](config/lua/config/use_ime.md) to see that is
@@ -112,13 +112,13 @@ trying to use.
 
 ## Debugging Font Display
 
-Use `wezterm ls-fonts` to explain which fonts will be used for different styles
+Use `wsb-wezterm ls-fonts` to explain which fonts will be used for different styles
 of text.
 
-Use `wezterm ls-fonts --list-system` to get a list of fonts available on your
+Use `wsb-wezterm ls-fonts --list-system` to get a list of fonts available on your
 system, in a form that you can use in your config file.
 
-Use `wezterm ls-fonts --text foo` to explain how wezterm will render the text
-`foo`, and `wezterm ls-fonts --text foo --rasterize-ascii` to show an ascii art
+Use `wsb-wezterm ls-fonts --text foo` to explain how wsb-wezterm will render the text
+`foo`, and `wsb-wezterm ls-fonts --text foo --rasterize-ascii` to show an ascii art
 rendition of that text.
 

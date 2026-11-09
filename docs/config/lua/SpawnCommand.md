@@ -21,7 +21,7 @@ wezterm.action.SpawnCommandInNewWindow {
   args = { 'ls', '-al' },
 
   -- The current working directory to set for the command.
-  -- If omitted, wezterm will infer a value based on the active pane
+  -- If omitted, wsb-wezterm will infer a value based on the active pane
   -- at the time this action is triggered.  If the active pane
   -- matches the domain specified in this `SpawnCommand` instance
   -- then the current working directory of the active pane will be
@@ -46,7 +46,7 @@ wezterm.action.SpawnCommandInNewWindow {
   -- Specify that the default multiplexer domain be used for this
   -- command invocation.  The default domain is typically the "local"
   -- domain, which spawns processes locally.  However, if you started
-  -- wezterm using `wezterm connect` or `wezterm serial` then the default
+  -- wsb-wezterm using `wsb-wezterm connect` or `wsb-wezterm serial` then the default
   -- domain will not be "local".
   domain = 'DefaultDomain',
 

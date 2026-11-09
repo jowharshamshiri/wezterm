@@ -173,7 +173,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     )?;
 
     // For backwards compatibility
-    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    let wezterm_mod = get_or_create_module(lua, config::identity::NAME)?;
     wezterm_mod.set("sleep_ms", lua.create_async_function(sleep_ms)?)?;
     wezterm_mod.set("strftime", lua.create_function(strftime)?)?;
     wezterm_mod.set("strftime_utc", lua.create_function(strftime_utc)?)?;

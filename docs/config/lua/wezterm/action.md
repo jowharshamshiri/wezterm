@@ -37,7 +37,7 @@ reference the constructor directly to have it evaluate as that value without
 having to add any extra punctuation:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 return {
   keys = {
     {
@@ -53,7 +53,7 @@ You may pass the optional parameters to `QuickSelectArgs` as you need
 them, like this:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 return {
   keys = {
     {
@@ -72,7 +72,7 @@ such as [ActivatePaneByIndex](../keyassignment/ActivatePaneByIndex.md), then
 you can pass those by calling the constructor:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 -- shortcut to save typing below
 local act = wezterm.action
 
@@ -101,7 +101,7 @@ return {
 For versions before *20220624-141144-bd1b7c5d*, usage looks like this:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 return {
   keys = {
     {

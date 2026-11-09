@@ -63,7 +63,7 @@ pub struct Client {
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 #[error(
-    "Please install the same version of wezterm on both the client and server!\n\
+    "Please install the same version of wsb-wezterm on both the client and server!\n\
      The server version is {} (codec version {}),\n\
      which is not compatible with our version \n\
      {} (codec version {}).",
@@ -708,18 +708,20 @@ impl Reconnectable {
         }
     }
 
-    /// Resolve the path to wezterm for the remote system.
+    /// Resolve the path to wsb-wezterm for the remote system.
     /// We can't simply derive this from the current executable because
     /// we are being asked to produce a path for the remote system and
     /// we don't really know anything about it.
-    /// `path` comes from the SshDoman::remote_wezterm_path option; if set
+    /// `path` comes from the SshDoman::remote_wsb_wezterm_path option; if set
     /// then the user has told us where to look.
     /// Otherwise, we have to rely on the `PATH` environment for the remote
     /// system, and we don't know if it is even running unix, or whether
     /// any given shell syntax will help us provide a more meaningful
     /// message to the user.
     fn wezterm_bin_path(path: &Option<String>) -> String {
-        path.as_deref().unwrap_or("wezterm").to_string()
+        path.as_deref()
+            .unwrap_or(config::identity::NAME)
+            .to_string()
     }
 
     fn ssh_connect(
@@ -731,7 +733,7 @@ impl Reconnectable {
         let ssh_config = mux::ssh::ssh_domain_to_ssh_config(&ssh_dom)?;
 
         let sess = ssh_connect_with_ui(ssh_config, ui)?;
-        let proxy_bin = Self::wezterm_bin_path(&ssh_dom.remote_wezterm_path);
+        let proxy_bin = Self::wezterm_bin_path(&ssh_dom.remote_wsb_wezterm_path);
 
         let cmd = if let Some(cmd) = ssh_dom.override_proxy_command.clone() {
             cmd
@@ -932,7 +934,7 @@ impl Reconnectable {
                     // obtain client credentials that we can use for tls.
                     let cmd = format!(
                         "{} cli tlscreds",
-                        Self::wezterm_bin_path(&tls_client.remote_wezterm_path)
+                        Self::wezterm_bin_path(&tls_client.remote_wsb_wezterm_path)
                     );
 
                     ui.output_str(&format!("Running: {}\n", cmd));
@@ -1121,7 +1123,7 @@ impl Client {
                     }
 
                     let mut ui = ConnectionUI::new();
-                    ui.title("wezterm: Reconnecting...");
+                    ui.title(&format!("{}: Reconnecting...", config::identity::NAME));
 
                     loop {
                         ui.sleep_with_reason(
@@ -1250,7 +1252,7 @@ impl Client {
                         .to_string()
                 } else {
                     format!(
-                        "Please install the same version of wezterm on both \
+                        "Please install the same version of wsb-wezterm on both \
                      the client and server! \
                      The server reported error '{err}' while being asked for its \
                      version.  This likely means that the server is older \
@@ -1270,14 +1272,14 @@ impl Client {
         self.local_domain_id
     }
 
-    /// The unix domain `wezterm cli` reaches: `WEZTERM_UNIX_SOCKET`,
+    /// The unix domain `wsb-wezterm cli` reaches: `WSB_WEZTERM_UNIX_SOCKET`,
     /// else the GUI's own (unless `prefer_mux`), else the first
     /// configured unix domain.
     pub fn compute_unix_domain(
         prefer_mux: bool,
         class_name: &str,
     ) -> anyhow::Result<config::UnixDomain> {
-        match std::env::var_os("WEZTERM_UNIX_SOCKET") {
+        match std::env::var_os("WSB_WEZTERM_UNIX_SOCKET") {
             Some(path) if !path.is_empty() => Ok(config::UnixDomain {
                 socket_path: Some(path.into()),
                 ..Default::default()
@@ -1299,7 +1301,7 @@ impl Client {
                     .first()
                     .ok_or_else(|| {
                         anyhow!(
-                            "no default unix domain is configured and WEZTERM_UNIX_SOCKET \
+                            "no default unix domain is configured and WSB_WEZTERM_UNIX_SOCKET \
                              is not set in the environment"
                         )
                     })?
@@ -1369,7 +1371,7 @@ impl Client {
         let pane_id: PaneId = match pane_id {
             Some(p) => p,
             None => {
-                if let Ok(pane) = std::env::var("WEZTERM_PANE") {
+                if let Ok(pane) = std::env::var("WSB_WEZTERM_PANE") {
                     pane.parse()?
                 } else {
                     let mut clients = self.list_clients().await?.clients;
@@ -1377,7 +1379,7 @@ impl Client {
                     clients.sort_by(|a, b| b.last_input.cmp(&a.last_input));
                     if clients.is_empty() {
                         anyhow::bail!(
-                            "--pane-id was not specified and $WEZTERM_PANE
+                            "--pane-id was not specified and $WSB_WEZTERM_PANE
                          is not set in the environment, and I couldn't
                          determine which pane was currently focused"
                         );

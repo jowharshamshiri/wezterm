@@ -1,6 +1,6 @@
 # `HideApplication`
 
-On macOS, hide the WezTerm application.
+On macOS, hide the wsb-wezterm application.
 
 ```lua
 config.keys = {

@@ -13,14 +13,14 @@ checked and so on.
 The first parameter is a table listing the fonts in their preferred order:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   font = wezterm.font_with_fallback { 'JetBrains Mono', 'Noto Color Emoji' },
 }
 ```
 
-WezTerm implicitly adds its default fallback to the list that you specify.
+wsb-wezterm implicitly adds its default fallback to the list that you specify.
 
 The *attributes* parameter behaves the same as that of [wezterm.font](font.md)
 in that it allows you to specify font weight and style attributes that you
@@ -32,7 +32,7 @@ The attributes can now be specified per fallback font using this alternative
 form where the family and attributes are specified as part of the same lua table:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   font = wezterm.font_with_fallback {
@@ -51,7 +51,7 @@ default ligature feature just for JetBrains Mono, but leave it on for the
 other fonts in the fallback:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   font = wezterm.font_with_fallback {
@@ -85,7 +85,7 @@ have the same size.
 
 Setting
 [use_cap_height_to_scale_fallback_fonts](../config/use_cap_height_to_scale_fallback_fonts.md)
-= `true` will cause wezterm to try to automatically scale using the
+= `true` will cause wsb-wezterm to try to automatically scale using the
 *cap-height* metric (or to compute its own idea of the *cap-height* based on the size of
 glyph(s)).
 
@@ -103,7 +103,7 @@ influence font metrics so it may be desirable to also specify
 [line_height](../config/line_height.md) to produce a more pleasing display.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   line_height = 1.2,

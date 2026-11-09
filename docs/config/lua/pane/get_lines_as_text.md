@@ -26,7 +26,7 @@ and visible area of the active pane, write it to a file and then open that file
 in the `vim` editor:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local io = require 'io'
 local os = require 'os'
 local act = wezterm.action

@@ -3,7 +3,7 @@ use config::lua::mlua::{self, Lua, Variadic};
 use std::collections::HashMap;
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
-    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    let wezterm_mod = get_or_create_module(lua, config::identity::NAME)?;
     wezterm_mod.set(
         "enumerate_ssh_hosts",
         lua.create_function(enumerate_ssh_hosts)?,

@@ -21,7 +21,7 @@ In this example, a key assignment (`CTRL-SHIFT-E`) is used to toggle the use of
 ligatures in the current window:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('toggle-ligature', function(window, pane)
   local overrides = window:get_config_overrides() or {}
@@ -50,7 +50,7 @@ In this example, a key assignment (`CTRL-SHIFT-B`) is used to toggle opacity
 for the window:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('toggle-opacity', function(window, pane)
   local overrides = window:get_config_overrides() or {}

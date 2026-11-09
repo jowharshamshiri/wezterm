@@ -9,9 +9,9 @@ tags:
 
 Control IME preedit rendering.
 IME preedit is an area that is used to display the string being preedited in IME.
-WezTerm supports the following IME preedit rendering.
+wsb-wezterm supports the following IME preedit rendering.
 
-* `"Builtin"` - (Default) IME preedit is rendered by WezTerm itself
+* `"Builtin"` - (Default) IME preedit is rendered by wsb-wezterm itself
 
   "Builtin" rendering provides good look and feel for many IMEs,
   rendering the text using the same font as the terminal and
@@ -37,9 +37,9 @@ Otherwise, the default is `"Builtin"`.
 
 Note:
 
-* Changing `ime_preedit_rendering` usually requires re-launching WezTerm to take full effect.
+* Changing `ime_preedit_rendering` usually requires re-launching wsb-wezterm to take full effect.
 * In macOS, `ime_preedit_rendering` has effected nothing yet.
-  IME preedit is always rendered by WezTerm itself.
+  IME preedit is always rendered by wsb-wezterm itself.
 
 ## Fcitx5 on X11
 
@@ -54,7 +54,7 @@ a section header) in `~/.config/fcitx5/conf/xim.conf`:
 UseOnTheSpot=True
 ```
 
-Restart Fcitx5, then re-launch WezTerm for the change to take full effect.
+Restart Fcitx5, then re-launch wsb-wezterm for the change to take full effect.
 If that is not sufficient, log out of the desktop session and log back in.
 
 For more background on Fcitx5's XIM inline preedit behavior and why this

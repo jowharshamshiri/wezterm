@@ -3,7 +3,7 @@ use config::lua::mlua::{Lua, Value, Variadic};
 use luahelper::ValuePrinter;
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
-    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    let wezterm_mod = get_or_create_module(lua, config::identity::NAME)?;
 
     wezterm_mod.set(
         "log_error",

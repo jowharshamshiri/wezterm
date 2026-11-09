@@ -3,11 +3,11 @@
 {{since('20220807-113146-c2fee766')}}
 
 Loads a json file exported from [terminal.sexy](https://terminal.sexy/)
-and returns it as a wezterm color scheme.
+and returns it as a wsb-wezterm color scheme.
 
-Note that wezterm ships with all of the pre-defined terminal.sexy color
+Note that wsb-wezterm ships with all of the pre-defined terminal.sexy color
 schemes, so this function is primarily useful if you want to design a color
-scheme using terminal.sexy and then import it to wezterm.
+scheme using terminal.sexy and then import it to wsb-wezterm.
 
 This function returns a tuple of the color definitions and the metadata.
 

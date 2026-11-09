@@ -30,7 +30,7 @@ This function may return `nil` if it was unable to return the info.
     },
     "cwd": "/home/wez/wez-personal/wezterm",
     "executable": "/home/wez/wez-personal/wezterm/target/debug/wezterm-gui",
-    "name": "wezterm-gui",
+    "name": "wsb-wezterm-gui",
     "pid": 540450,
     "ppid": 425276,
     "start_time": 8671498240,

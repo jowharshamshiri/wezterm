@@ -476,7 +476,7 @@ impl InputMap {
     }
 
     pub fn dump_config(&self, key_table: Option<&str>) {
-        println!("local wezterm = require 'wezterm'");
+        println!("local wezterm = require 'wsb-wezterm'");
         println!("local act = wezterm.action");
         println!();
         println!("return {{");

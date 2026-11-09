@@ -15,7 +15,7 @@ pub struct Window {
     workspace: String,
     title: String,
     /// Named values a program sets to recognize this window by (see
-    /// `wezterm cli set-window-var`). Unlike the title, nothing running in a
+    /// `wsb-wezterm cli set-window-var`). Unlike the title, nothing running in a
     /// pane can change them.
     vars: BTreeMap<String, String>,
     initial_position: Option<GuiPosition>,

@@ -1172,7 +1172,7 @@ impl WaylandWindowInner {
     }
 
     /// `width` x `height` in surface coordinates, at most the bounds the
-    /// compositor suggested less the frame WezTerm draws around the
+    /// compositor suggested less the frame wsb-wezterm draws around the
     /// surface. A compositor that suggests no bounds (one whose
     /// xdg-shell is older than version 4, or that does not know them)
     /// says nothing of the output's size, so the size stays as asked.

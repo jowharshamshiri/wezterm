@@ -857,7 +857,7 @@ pub struct WindowWorkspaceChanged {
 /// What a connection introducing itself with `SetClientId` is.
 #[derive(Deserialize, Serialize, PartialEq, Debug, Clone, Copy)]
 pub enum ClientKind {
-    /// A `wezterm cli proxy`, carrying another client's connection.
+    /// A `wsb-wezterm cli proxy`, carrying another client's connection.
     /// It is not registered; the client behind it introduces itself
     /// next, and is shown as reached through the proxy.
     Proxy,

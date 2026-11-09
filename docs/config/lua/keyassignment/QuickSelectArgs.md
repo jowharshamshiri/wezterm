@@ -11,7 +11,7 @@ the default or the [quick_select_patterns](../config/quick_select_patterns.md)
 configuration:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 config.keys = {
   {
@@ -40,7 +40,7 @@ quick-selected text, instead of copying it to the clipboard.  Here, we open
 the selected URL using the web browser:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 config.keys = {
   {

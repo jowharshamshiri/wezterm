@@ -457,7 +457,7 @@ impl<'a> Performer<'a> {
             }
             ControlCode::RI => self.c1_reverse_index(),
 
-            // wezterm only supports UTF-8, so does not support the
+            // wsb-wezterm only supports UTF-8, so does not support the
             // DEC National Replacement Character Sets.  However, it does
             // support the DEC Special Graphics character set used by
             // numerous ncurses applications.  DEC Special Graphics can be

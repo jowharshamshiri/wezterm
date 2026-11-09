@@ -1,4 +1,4 @@
-//! `wezterm cli relay`: one pane of a multiplexer, mirrored for another
+//! `wsb-wezterm cli relay`: one pane of a multiplexer, mirrored for another
 //! program over stdin and stdout.
 //!
 //! The relay attaches to the multiplexer as a client, as a GUI does, and
@@ -61,7 +61,7 @@ const MAX_INPUT_LINE: usize = 4 * 1024 * 1024;
 
 #[derive(Debug, Parser, Clone)]
 pub struct RelayCommand {
-    /// The pane to relay, as `wezterm cli list` shows it.
+    /// The pane to relay, as `wsb-wezterm cli list` shows it.
     #[arg(long = "pane-id")]
     pane_id: PaneId,
 
@@ -72,7 +72,7 @@ pub struct RelayCommand {
 }
 
 /// Run the relay until stdin ends or the pane does. It runs on its own
-/// executor rather than `wezterm cli`'s: the client's panes spawn tasks
+/// executor rather than `wsb-wezterm cli`'s: the client's panes spawn tasks
 /// that need one able to run them from any thread.
 pub fn run(
     opts: &crate::Opt,

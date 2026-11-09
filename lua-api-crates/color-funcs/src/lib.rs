@@ -166,7 +166,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
         })?,
     )?;
 
-    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    let wezterm_mod = get_or_create_module(lua, config::identity::NAME)?;
     wezterm_mod.set("gradient_colors", lua.create_function(gradient_colors)?)?;
     color.set("gradient", lua.create_function(gradient_colors)?)?;
 

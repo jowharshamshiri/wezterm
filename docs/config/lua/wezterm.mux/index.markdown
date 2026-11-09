@@ -14,7 +14,7 @@ by this module.
 You will typically use something like:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local mux = wezterm.mux
 ```
 
@@ -22,7 +22,7 @@ at the top of your configuration file to access it.
 
 ## Important Note!
 
-*You should **avoid using, at the file scope in your config**, mux functions that cause new splits, tabs or windows to be created. The configuration file can be evaluated multiple times in various contexts. If you want to spawn new programs when wezterm starts up, look at the [gui-startup](../gui-events/gui-startup.md) and [mux-startup](../mux-events/mux-startup.md) events.*
+*You should **avoid using, at the file scope in your config**, mux functions that cause new splits, tabs or windows to be created. The configuration file can be evaluated multiple times in various contexts. If you want to spawn new programs when wsb-wezterm starts up, look at the [gui-startup](../gui-events/gui-startup.md) and [mux-startup](../mux-events/mux-startup.md) events.*
 
 ## Available functions, constants
 

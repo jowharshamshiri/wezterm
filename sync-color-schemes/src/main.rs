@@ -275,7 +275,7 @@ impl SchemeSet {
             }
         }
 
-        // Resolve wezterm version information for this scheme
+        // Resolve wsb-wezterm version information for this scheme
         let json = candidate.to_json_value().expect("scheme to be json compat");
         let ident =
             serde_json::to_string(json.get("colors").unwrap()).expect("colors to be json compat");

@@ -2428,7 +2428,7 @@ impl<'a> CSIParser<'a> {
 
     fn parse_sgr_color(&mut self, params: &'a [CsiParam]) -> Result<ColorSpec, ()> {
         match params {
-            // wezterm extension to support an optional alpha channel in the `:` form only
+            // wsb-wezterm extension to support an optional alpha channel in the `:` form only
             [
                 _,
                 CsiParam::P(b':'),

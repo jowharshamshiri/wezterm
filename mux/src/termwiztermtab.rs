@@ -1,5 +1,5 @@
 //! a tab hosting a termwiz terminal applet
-//! The idea is to use these when wezterm needs to request
+//! The idea is to use these when wsb-wezterm needs to request
 //! input from the user as part of eg: setting up an ssh
 //! session.
 
@@ -108,7 +108,7 @@ impl TermWizTerminalPane {
         let terminal = Mutex::new(wezterm_term::Terminal::new(
             size,
             term_config.unwrap_or_else(|| Arc::new(config::TermConfig::new())),
-            "WezTerm",
+            config::identity::NAME,
             config::wezterm_version(),
             Box::new(Vec::new()), // FIXME: connect to something?
         ));

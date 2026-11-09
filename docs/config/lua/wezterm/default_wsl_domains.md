@@ -42,7 +42,7 @@ The purpose of this function is to aid in situations where you might want set
 `default_prog` for the WSL distributions:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local wsl_domains = wezterm.default_wsl_domains()
 

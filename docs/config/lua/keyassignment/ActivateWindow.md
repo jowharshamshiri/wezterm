@@ -13,7 +13,7 @@ wezterm.gui.gui_windows()[n + 1]:focus()
 Here's an example of setting up hotkeys to activate specific windows:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 local config = {}
 

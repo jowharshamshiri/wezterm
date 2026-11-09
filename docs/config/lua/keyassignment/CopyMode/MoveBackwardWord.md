@@ -5,7 +5,7 @@
 Moves the CopyMode cursor position one word to the left.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 return {

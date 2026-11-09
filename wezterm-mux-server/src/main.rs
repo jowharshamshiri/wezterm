@@ -16,12 +16,13 @@ mod daemonize;
 
 #[derive(Debug, Parser)]
 #[command(
-    about = "Wez's Terminal Emulator\nhttp://github.com/wezterm/wezterm",
+    name = "wsb-wezterm-mux-server",
+    about = "wsb-wezterm, a fork of WezTerm, Wez Furlong's terminal emulator\nhttps://github.com/jowharshamshiri/wsb-wezterm",
     version = config::wezterm_version(),
     trailing_var_arg = true,
 )]
 struct Opt {
-    /// Skip loading wezterm.lua
+    /// Skip loading wsb-wezterm.lua
     #[arg(long, short = 'n')]
     skip_config: bool,
 
@@ -57,7 +58,7 @@ struct Opt {
     pid_file_fd: Option<i32>,
 
     /// Instead of executing your shell, run PROG.
-    /// For example: `wezterm start -- bash -l` will spawn bash
+    /// For example: `wsb-wezterm start -- bash -l` will spawn bash
     /// as if it were a login shell.
     #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
     prog: Vec<OsString>,
@@ -194,8 +195,8 @@ fn run() -> anyhow::Result<()> {
         "OLDPWD",
         "PWD",
         "SHLVL",
-        "WEZTERM_PANE",
-        "WEZTERM_UNIX_SOCKET",
+        "WSB_WEZTERM_PANE",
+        "WSB_WEZTERM_UNIX_SOCKET",
         "_",
     ] {
         std::env::remove_var(name);
@@ -310,7 +311,7 @@ mod ossl;
 pub fn spawn_listener() -> anyhow::Result<()> {
     let config = configuration();
     for unix_dom in &config.unix_domains {
-        std::env::set_var("WEZTERM_UNIX_SOCKET", unix_dom.socket_path());
+        std::env::set_var("WSB_WEZTERM_UNIX_SOCKET", unix_dom.socket_path());
         let mut listener = wezterm_mux_server_impl::local::LocalListener::with_domain(unix_dom)?;
         thread::spawn(move || {
             listener.run();

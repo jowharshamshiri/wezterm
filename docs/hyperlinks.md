@@ -1,4 +1,4 @@
-wezterm has support for both implicit and explicit hyperlinks.
+wsb-wezterm has support for both implicit and explicit hyperlinks.
 
 ### Implicit Hyperlinks
 
@@ -10,10 +10,10 @@ to make your own links.
 As an example, at my place of work many of our internal tools use `T123` to
 indicate task number 123 in our internal task tracking system.  It is desirable
 to make this clickable, and that can be done with the following configuration
-in your `~/.wezterm.lua`:
+in your `~/.wsb-wezterm.lua`:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local config = {}
 
 -- Use the defaults as a base
@@ -44,7 +44,7 @@ See also [hyperlink_rules](config/lua/config/hyperlink_rules.md) and
 
 ### Explicit Hyperlinks
 
-wezterm supports the relatively new [Hyperlinks in Terminal
+wsb-wezterm supports the relatively new [Hyperlinks in Terminal
 Emulators](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda)
 specification that allows emitting text that can be clicked and resolve to a
 specific URL, without the URL being part of the display text.  This allows

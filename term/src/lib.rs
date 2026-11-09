@@ -1,6 +1,6 @@
 //! This crate provides the core of the virtual terminal emulator implementation
-//! used by [wezterm](https://wezterm.org/).  The home for this
-//! crate is in the wezterm repo and development is tracked at
+//! used by [wsb-wezterm](https://github.com/jowharshamshiri/wsb-wezterm), a fork
+//! of [WezTerm](https://wezterm.org/), where this crate comes from: its home is
 //! <https://github.com/wezterm/wezterm/>.
 //!
 //! It is full featured, providing terminal escape sequence parsing, keyboard

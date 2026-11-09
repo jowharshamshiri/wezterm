@@ -49,7 +49,7 @@ snippets into the active pane and, when the click was on a tab, an item that
 switches to that tab:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 local config = wezterm.config_builder()

@@ -11,7 +11,7 @@ tags:
 Returns a config builder object that can be used to define your configuration:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local config = wezterm.config_builder()
 
@@ -27,7 +27,7 @@ to define an invalid configuration option.
 For example, with this erroneous config:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 -- Allow working with both the current release and the nightly
 local config = {}
@@ -50,7 +50,7 @@ another_layer(config)
 return config
 ```
 
-When evaluated by earlier versions of wezterm, this config will produce the
+When evaluated by earlier versions of WezTerm, this config will produce the
 following warning, which is terse and doesn't provide any context on where the
 mistake was made, requiring you to hunt around and find where `wrong` was
 referenced:
@@ -75,7 +75,7 @@ The config builder provides a method that allows you to promote the warning to a
 config:set_strict_mode(true)
 ```
 
-The consequence of an error is that wezterm will show a configuration error
+The consequence of an error is that wsb-wezterm will show a configuration error
 window and use the default config until you have resolved the error and
 reloaded the configuration.  When not using strict mode, the warning
 will not prevent the rest of your configuration from being used.

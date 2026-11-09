@@ -214,7 +214,7 @@ impl TmuxDomainState {
         let terminal = wezterm_term::Terminal::new(
             size,
             std::sync::Arc::new(config::TermConfig::new()),
-            "WezTerm",
+            config::identity::NAME,
             config::wezterm_version(),
             Box::new(writer.clone()),
         );

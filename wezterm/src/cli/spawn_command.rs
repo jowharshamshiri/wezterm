@@ -12,7 +12,7 @@ use wezterm_client::client::Client;
 pub struct SpawnCommand {
     /// Specify the current pane.
     /// The default is to use the current pane based on the
-    /// environment variable WEZTERM_PANE.
+    /// environment variable WSB_WEZTERM_PANE.
     /// The pane is used to determine the current domain
     /// and window.
     #[arg(long)]
@@ -44,7 +44,7 @@ pub struct SpawnCommand {
     workspace: Option<String>,
 
     /// Instead of executing your shell, run PROG.
-    /// For example: `wezterm cli spawn -- bash -l` will spawn bash
+    /// For example: `wsb-wezterm cli spawn -- bash -l` will spawn bash
     /// as if it were a login shell.
     #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
     prog: Vec<OsString>,

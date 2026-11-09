@@ -31,7 +31,7 @@ upon the input.
 ## Example of choosing a program with user confirmation
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 local config = wezterm.config_builder()
 

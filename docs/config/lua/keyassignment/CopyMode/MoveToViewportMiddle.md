@@ -6,7 +6,7 @@ Moves the CopyMode cursor position to the middle of the viewport.
 
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 return {

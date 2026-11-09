@@ -20,15 +20,15 @@ The following values are possible:
 * `"Middle"` - the middle mouse button
 
 The last event parameter is a [KeyAssignment](../keyassignment/index.md) which
-encodes the default, built-in action that wezterm will take.  It may be `nil`
-in the case where wezterm would not take any action.
+encodes the default, built-in action that wsb-wezterm will take.  It may be `nil`
+in the case where wsb-wezterm would not take any action.
 
 You may take any action you wish in this event handler.
 
-If you return `false` then you will prevent wezterm from carrying out its
+If you return `false` then you will prevent wsb-wezterm from carrying out its
 default action.
 
-Otherwise, wezterm will proceed to perform that action once your event
+Otherwise, wsb-wezterm will proceed to perform that action once your event
 handler returns.
 
 This following two examples are equivalent in functionality:
@@ -37,7 +37,7 @@ This following two examples are equivalent in functionality:
 wezterm.on(
   'new-tab-button-click',
   function(window, pane, button, default_action)
-    -- just log the default action and allow wezterm to perform it
+    -- just log the default action and allow wsb-wezterm to perform it
     wezterm.log_info('new-tab', window, pane, button, default_action)
   end
 )
@@ -52,7 +52,7 @@ wezterm.on(
     if default_action then
       window:perform_action(default_action, pane)
     end
-    -- and tell wezterm that we handled the event so that it doesn't
+    -- and tell wsb-wezterm that we handled the event so that it doesn't
     -- perform it a second time.
     return false
   end

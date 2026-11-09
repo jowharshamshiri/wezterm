@@ -77,7 +77,7 @@ impl TestTerm {
                 dpi: 0,
             },
             Arc::new(TestTermConfig { scrollback }),
-            "WezTerm",
+            "wsb-wezterm",
             "O_o",
             Box::new(Vec::new()),
         );

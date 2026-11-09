@@ -10,7 +10,7 @@ Possible values for source are:
 * `PrimarySelection` - paste from the primary selection buffer
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 config.keys = {

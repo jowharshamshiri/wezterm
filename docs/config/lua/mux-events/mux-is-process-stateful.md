@@ -26,7 +26,7 @@ indenting the entries for each level of the process hierarchy.
 Since it returns `nil`, it uses the default behavior.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 function log_proc(proc, indent)
   indent = indent or ''

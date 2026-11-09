@@ -939,7 +939,7 @@ impl GlyphCache {
                     let now = Instant::now();
 
                     // We round up the frame duration to at least the minimum
-                    // frame duration that wezterm can use when rendering.
+                    // frame duration that wsb-wezterm can use when rendering.
                     // There's no point trying to deal with smaller intervals
                     // because we simply cannot render them without dropping
                     // frames.
@@ -1008,7 +1008,7 @@ impl GlyphCache {
 
                 let now = Instant::now();
                 // We round up the frame duration to at least the minimum
-                // frame duration that wezterm can use when rendering.
+                // frame duration that wsb-wezterm can use when rendering.
                 // There's no point trying to deal with smaller intervals
                 // because we simply cannot render them without dropping
                 // frames.

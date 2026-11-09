@@ -29,6 +29,7 @@ mod daemon;
 mod exec_domain;
 mod font;
 mod frontend;
+pub mod identity;
 pub mod keyassignment;
 mod keys;
 pub mod lua;
@@ -383,9 +384,9 @@ pub fn create_user_owned_dirs(p: &Path) -> anyhow::Result<()> {
 }
 
 fn xdg_config_home() -> PathBuf {
-    match std::env::var_os("XDG_CONFIG_HOME").map(|s| PathBuf::from(s).join("wezterm")) {
+    match std::env::var_os("XDG_CONFIG_HOME").map(|s| PathBuf::from(s).join(identity::NAME)) {
         Some(p) => p,
-        None => HOME_DIR.join(".config").join("wezterm"),
+        None => HOME_DIR.join(".config").join(identity::NAME),
     }
 }
 
@@ -395,7 +396,7 @@ fn config_dirs() -> Vec<PathBuf> {
 
     #[cfg(unix)]
     if let Some(d) = std::env::var_os("XDG_CONFIG_DIRS") {
-        dirs.extend(std::env::split_paths(&d).map(|s| PathBuf::from(s).join("wezterm")));
+        dirs.extend(std::env::split_paths(&d).map(|s| PathBuf::from(s).join(identity::NAME)));
     }
 
     dirs

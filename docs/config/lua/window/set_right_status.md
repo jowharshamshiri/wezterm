@@ -17,7 +17,7 @@ Here's a basic example that displays the time in the status area:
 ![Demonstrating setting the right status area to the current date and time](../../../screenshots/wezterm-status-date.png)
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('update-right-status', function(window, pane)
   local date = wezterm.strftime '%Y-%m-%d %H:%M:%S'
@@ -55,13 +55,13 @@ wezterm.on('update-right-status', function(window, pane)
     local hostname = ''
 
     if type(cwd_uri) == 'userdata' then
-      -- Running on a newer version of wezterm and we have
+      -- Running on a newer version and we have
       -- a URL object here, making this simple!
 
       cwd = cwd_uri.file_path
       hostname = cwd_uri.host or wezterm.hostname()
     else
-      -- an older version of wezterm, 20230712-072601-f4abf8fd or earlier,
+      -- an older version of WezTerm, 20230712-072601-f4abf8fd or earlier,
       -- which doesn't have the Url object
       cwd_uri = cwd_uri:sub(8)
       local slash = cwd_uri:find '/'

@@ -3,7 +3,7 @@
 Toggles full screen mode for the current window.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 config.keys = {
   {

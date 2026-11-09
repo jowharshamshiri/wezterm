@@ -11,7 +11,7 @@ tags:
 This function follows the html/javascript naming for defining event handlers.
 
 `wezterm.on` causes your specified `callback` to be called when `event_name`
-is emitted.  Events can be emitted by wezterm itself, or through code/configuration
+is emitted.  Events can be emitted by wsb-wezterm itself, or through code/configuration
 that you specify.
 
 `wezterm.on` can register multiple callbacks for the same event; internally
@@ -41,9 +41,9 @@ events.
 
 ## Custom Events
 
-You may register handlers for arbitrary events for which wezterm itself
+You may register handlers for arbitrary events for which wsb-wezterm itself
 has no special knowledge.  It is recommended that you avoid event names
-that are likely to be used future versions of wezterm in order to avoid
+that are likely to be used future versions of wsb-wezterm in order to avoid
 unexpected behavior if/when those names might be used in future.
 
 The [wezterm.emit](emit.md) function and the [EmitEvent](../keyassignment/EmitEvent.md) key assignment can be used to
@@ -56,7 +56,7 @@ and visible area of the active pane, write it to a file and then open that file
 in the `vim` editor:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local io = require 'io'
 local os = require 'os'
 local act = wezterm.action

@@ -35,7 +35,7 @@ pub struct TlsDomainClient {
 
     /// If set, use ssh to connect, start the server, and obtain
     /// a certificate.
-    /// The value is "user@host:port", just like "wezterm ssh" accepts.
+    /// The value is "user@host:port", just like "wsb-wezterm ssh" accepts.
     pub bootstrap_via_ssh: Option<String>,
 
     /// identifies the host:port pair of the remote server.
@@ -85,12 +85,12 @@ pub struct TlsDomainClient {
     #[dynamic(default = "default_local_echo_threshold_ms")]
     pub local_echo_threshold_ms: Option<u64>,
 
-    /// The path to the wezterm binary on the remote host
-    pub remote_wezterm_path: Option<String>,
+    /// The path to the wsb-wezterm binary on the remote host
+    pub remote_wsb_wezterm_path: Option<String>,
 
     /// Show time since last response when waiting for a response.
     /// It is recommended to use
-    /// <https://wezterm.org/config/lua/pane/get_metadata.html#since_last_response_ms>
+    /// <https://github.com/jowharshamshiri/wsb-wezterm/blob/main/docs/config/lua/pane/get_metadata.md>
     /// instead.
     #[dynamic(default)]
     pub overlay_lag_indicator: bool,

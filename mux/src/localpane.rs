@@ -266,8 +266,8 @@ impl Pane for LocalPane {
         let mut proc = self.process.lock();
 
         const EXIT_BEHAVIOR: &str = "This message is shown because \
-            \x1b]8;;https://wezterm.org/\
-            config/lua/config/exit_behavior.html\
+            \x1b]8;;https://github.com/jowharshamshiri/wsb-wezterm/blob/main/docs/\
+            config/lua/config/exit_behavior.md\
             \x1b\\exit_behavior\x1b]8;;\x1b\\";
 
         let mut terse = String::new();
@@ -450,7 +450,7 @@ impl Pane for LocalPane {
         let title = self.terminal.lock().get_title().to_string();
         // If the title is the default pane title, then try to spice
         // things up a bit by returning the process basename instead
-        if title == "wezterm" {
+        if title == config::identity::NAME {
             if let Some(proc_name) = self.get_foreground_process_name(CachePolicy::AllowStale) {
                 let proc_name = std::path::Path::new(&proc_name);
                 if let Some(name) = proc_name.file_name() {

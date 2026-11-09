@@ -1,6 +1,6 @@
 ### Color Scheme
 
-WezTerm ships with over 700 color schemes available from
+wsb-wezterm ships with over 700 color schemes available from
 [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes#screenshots),
 [base16](https://github.com/chriskempson/base16-schemes-source),
 [Gogh](https://gogh-co.github.io/Gogh/) and
@@ -9,7 +9,7 @@ WezTerm ships with over 700 color schemes available from
 You can select a color scheme with a line like this:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local config = {}
 
 config.color_scheme = 'Batman'
@@ -52,7 +52,7 @@ you can use `#RRGGBB` to specify a color code using the
 usual hex notation; eg: `#000000` is equivalent to `black`:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local config = {}
 
 config.colors = {
@@ -204,14 +204,14 @@ config.colors = {
 }
 ```
 
-### Defining a Color Scheme in your `.wezterm.lua`
+### Defining a Color Scheme in your `.wsb-wezterm.lua`
 
 If you'd like to keep a couple of color schemes handy in your configuration
 file, rather than filling out the `colors` section, place it in a
 `color_schemes` section as shown below; you can then reference it using the
 `color_scheme` setting.
 
-Color schemes names that you define in your `wezterm.lua` take precedence
+Color schemes names that you define in your `wsb-wezterm.lua` take precedence
 over all other color schemes.
 
 All of the settings available from the `colors` section are available
@@ -241,13 +241,13 @@ can create a [TOML format](https://toml.io/en/) file with a `[colors]` section; 
 the available color schemes for an example](https://github.com/wezterm/wezterm/tree/main/config/src/scheme_data.rs).
 
 It is recommended that you place your custom scheme in a directory
-named `$HOME/.config/wezterm/colors` if you're on a POSIX system.
+named `$HOME/.config/wsb-wezterm/colors` if you're on a POSIX system.
 
-On a Windows system, `wezterm` will search for schemes in a directory
-named `colors` that is in the same directory as the `wezterm.exe`.
+On a Windows system, `wsb-wezterm` will search for schemes in a directory
+named `colors` that is in the same directory as the `wsb-wezterm.exe`.
 
 If you wish to place your color scheme files in some other location, then you
-will need to instruct wezterm where to look for your scheme files; the
+will need to instruct wsb-wezterm where to look for your scheme files; the
 `color_scheme_dirs` setting specifies a list of directories to be searched:
 
 ```lua
@@ -259,7 +259,7 @@ take precedence over the built-in color schemes.
 
 ### Dynamic Color Escape Sequences
 
-Wezterm supports dynamically changing its color palette via escape sequences.
+wsb-wezterm supports dynamically changing its color palette via escape sequences.
 
 [The dynamic-colors directory](https://github.com/mbadolato/iTerm2-Color-Schemes/tree/master/dynamic-colors)
 of the color scheme repo contains shell scripts that can change the color
@@ -301,7 +301,7 @@ The following options affect the fancy tab bar:
 config.window_frame = {
   -- The font used in the tab bar.
   -- Roboto Bold is the default; this font is bundled
-  -- with wezterm.
+  -- with wsb-wezterm.
   -- Whatever font is selected here, it will have the
   -- main font setting appended to it to pick up any
   -- fallback fonts you may have used there.

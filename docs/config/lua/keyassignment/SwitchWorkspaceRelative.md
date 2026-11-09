@@ -14,7 +14,7 @@ It shows the active workspace in the title bar.  The launcher menu can be used
 to create workspaces.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 wezterm.on('update-right-status', function(window, pane)

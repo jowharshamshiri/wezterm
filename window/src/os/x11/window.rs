@@ -2242,7 +2242,7 @@ impl WindowOps for XWindow {
         XConnection::with_window_inner(window_id, move |inner| {
             // In theory, we could simply consult inner.copy_and_paste to see
             // if we think we own the clipboard, but there are some situations
-            // where the selection owner moves between two wezterm windows
+            // where the selection owner moves between two wsb-wezterm windows
             // where we don't receive a SELECTION_NOTIFY in time to correctly
             // invalidate that state, so we always ask the X server to for
             // the selection, even if it is a little slower.

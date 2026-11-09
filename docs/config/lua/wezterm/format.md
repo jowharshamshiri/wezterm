@@ -11,17 +11,17 @@ tags:
 
 `wezterm.format` can be used to produce a formatted string
 with terminal graphic attributes such as bold, italic and colors.
-The resultant string is rendered into a string with wezterm
+The resultant string is rendered into a string with wsb-wezterm
 compatible escape sequences embedded.
 
 `wezterm.format` accepts a single array argument, where each
 element is a `FormatItem`.
 
 This example logs the text `Hello`, then the date/time, underlined, in purple
-text on a blue background to the stderr of the wezterm process:
+text on a blue background to the stderr of the wsb-wezterm process:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local success, date, stderr = wezterm.run_child_process { 'date' }
 
@@ -60,7 +60,7 @@ Possible values for the `FormatItem` elements are:
 This example shows how to use arbitrary escape sequences to change the underline color:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 wezterm.log_info(wezterm.format {
   -- turn on underlines
   { Attribute = { Underline = 'Single' } },

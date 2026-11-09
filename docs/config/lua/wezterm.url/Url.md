@@ -14,7 +14,7 @@ The `Url` object represents a parsed Url.  It has the following fields:
 * `query` - the query portion of the URL
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local url = wezterm.url.parse 'file://myhost/some/path%20with%20spaces'
 assert(url.scheme == 'file')

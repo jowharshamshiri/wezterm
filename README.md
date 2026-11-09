@@ -1,4 +1,36 @@
+# wsb-wezterm
+
+wsb-wezterm is a fork of [WezTerm](https://github.com/wezterm/wezterm), the
+GPU-accelerated cross-platform terminal emulator and multiplexer written by
+[Wez Furlong](https://github.com/wez). WezTerm is Wez Furlong's work, and the
+fork claims no part of it: [LICENSE.md](LICENSE.md) carries WezTerm's MIT licence
+and Wez Furlong's copyright notice, which cover this code as they cover WezTerm's.
+WezTerm's own documentation is at <https://wezterm.org/>, and its release
+history at <https://wezterm.org/changelog.html>.
+
+## Names
+
+wsb-wezterm goes by its own names, so that it never takes the place of a WezTerm
+installed beside it, and the two keep their configuration and state apart:
+
+| | wsb-wezterm |
+|---|---|
+| Programs | `wsb-wezterm`, `wsb-wezterm-gui`, `wsb-wezterm-mux-server` |
+| Application id (window class, desktop entry, macOS bundle identifier) | `com.bahramj.wsb-wezterm` |
+| macOS application | `wsb-wezterm.app` |
+| Configuration file | `$WSB_WEZTERM_CONFIG_FILE`, else `wsb-wezterm.lua` in `$XDG_CONFIG_HOME/wsb-wezterm` or `~/.config/wsb-wezterm`, else `~/.wsb-wezterm.lua` |
+| Lua module | `require 'wsb-wezterm'` |
+| Environment variables | `WSB_WEZTERM_*`, such as `WSB_WEZTERM_PANE` and `WSB_WEZTERM_UNIX_SOCKET`; `TERM_PROGRAM` is `wsb-wezterm` |
+| terminfo entry | `wsb-wezterm` |
+| Data, cache and runtime directories | `wsb-wezterm` in each |
+| Shell integration | `wsb-wezterm.sh`, whose user variables are `WSB_WEZTERM_PROG`, `WSB_WEZTERM_USER`, `WSB_WEZTERM_HOST` and `WSB_WEZTERM_IN_TMUX` |
+| Configuration values that name the program | `remote_wsb_wezterm_path`; an SSH domain's `multiplexing = "WsbWezterm"`; the ssh_config options `wsb_wezterm_ssh_backend` and `wsb_wezterm_ssh_verbose` |
+
 ## Changes from WezTerm
+
+### Updates
+
+- **wsb-wezterm checks for no updates.** WezTerm asks GitHub once a day for its newest release and offers to download it; a wsb-wezterm build is installed by whoever built it, so it asks nothing, and the `check_for_updates`, `check_for_updates_interval_seconds` and `show_update_window` options are gone. The Help menu's documentation entry opens this fork's documentation.
 
 ### Tabs
 
@@ -8,11 +40,11 @@
 
 ### Tab and window variables
 
-- **Named values on tabs and windows that only programs set.** `wezterm cli set-tab-var NAME VALUE` and `wezterm cli set-window-var NAME VALUE` (or `--unset NAME`), and `tab:set_var()` / `window:set_var()` in Lua, store values a program recognizes a tab or window by later. `wezterm cli list --format json` reports them as `tab_vars` and `window_vars`, and Lua reads them with `get_vars()`. Unlike titles, which any program in a pane can change with an escape sequence, nothing running in the panes can touch them. A multiplexer server's values are mirrored by every GUI attached to it, and a value a GUI sets on a server's tab or window is set on the server. This changes the multiplexer protocol.
+- **Named values on tabs and windows that only programs set.** `wsb-wezterm cli set-tab-var NAME VALUE` and `wsb-wezterm cli set-window-var NAME VALUE` (or `--unset NAME`), and `tab:set_var()` / `window:set_var()` in Lua, store values a program recognizes a tab or window by later. `wsb-wezterm cli list --format json` reports them as `tab_vars` and `window_vars`, and Lua reads them with `get_vars()`. Unlike titles, which any program in a pane can change with an escape sequence, nothing running in the panes can touch them. A multiplexer server's values are mirrored by every GUI attached to it, and a value a GUI sets on a server's tab or window is set on the server. This changes the multiplexer protocol.
 
 ### Window placement and zoom in Lua
 
-- **What a configuration needs to give a new window the placement and zoom an earlier one had**, which WezTerm keeps only while a window is open:
+- **What a configuration needs to give a new window the placement and zoom an earlier one had**, which wsb-wezterm keeps only while a window is open:
   - `window:get_position()` reports the top left of the window's content area, in the coordinates `window:set_position()` takes, so moving a window to its reported position leaves it where it is. On Wayland, which tells applications nothing of where their windows are, it returns `nil` ([docs](docs/config/lua/window/get_position.md)).
   - `window:get_dimensions()` also reports `is_maximized` ([docs](docs/config/lua/window/get_dimensions.md)).
   - `window:get_font_scale()` and `window:set_font_scale(scale)` read and set the zoom that IncreaseFontSize, DecreaseFontSize and ResetFontSize change ([docs](docs/config/lua/window/get_font_scale.md), [docs](docs/config/lua/window/set_font_scale.md)).
@@ -22,12 +54,12 @@
 
 ### Window size
 
-- **A window is no larger than its screen.** `window:set_inner_size()`, `window:set_content_size()`, and WezTerm's own resizes (such as zooming with `adjust_window_size_when_changing_font_size`) give a window at most the visible area of its screen, as the windowing system limits a resize by the user: the screen less the menu bar and the Dock on macOS, less the taskbar on Windows, the bounds the compositor suggests on Wayland, and the whole screen on X11, which tells windows nothing of panels. Before, a size larger than the screen was applied as asked ([docs](docs/config/lua/window/set_inner_size.md)).
-- **A window larger than the GPU can draw is not painted, and WezTerm logs an error, rather than aborting.** The OpenGL renderer panicked on a viewport larger than `GL_MAX_VIEWPORT_DIMS` ("Viewport dimensions are too large"), and WebGPU on a surface larger than its largest texture; on macOS the panic happened where it cannot unwind, which aborts the process. Such a window now stays unpainted until it is resized to a size the GPU can draw.
+- **A window is no larger than its screen.** `window:set_inner_size()`, `window:set_content_size()`, and wsb-wezterm's own resizes (such as zooming with `adjust_window_size_when_changing_font_size`) give a window at most the visible area of its screen, as the windowing system limits a resize by the user: the screen less the menu bar and the Dock on macOS, less the taskbar on Windows, the bounds the compositor suggests on Wayland, and the whole screen on X11, which tells windows nothing of panels. Before, a size larger than the screen was applied as asked ([docs](docs/config/lua/window/set_inner_size.md)).
+- **A window larger than the GPU can draw is not painted, and wsb-wezterm logs an error, rather than aborting.** The OpenGL renderer panicked on a viewport larger than `GL_MAX_VIEWPORT_DIMS` ("Viewport dimensions are too large"), and WebGPU on a surface larger than its largest texture; on macOS the panic happened where it cannot unwind, which aborts the process. Such a window now stays unpainted until it is resized to a size the GPU can draw.
 
 ### Context menu
 
-- **A right-click menu, drawn by WezTerm, the same on every platform.**
+- **A right-click menu, drawn by wsb-wezterm, the same on every platform.**
   - In a terminal: Copy (greyed out without a selection), Paste, Split Right, Split Down, Close Pane, New Tab, and Command Palette, with their shortcuts.
   - On the tab bar: New Tab, Close Tab (the tab clicked), Minimize, Maximize/Restore, and Close Window.
   - It uses the command palette's font and colours, and is navigated with the mouse or the arrow keys, Enter, and Escape.
@@ -37,7 +69,7 @@
 ### Wayland
 
 - **A window frame on desktops that leave decorations to the application, such as GNOME.** WezTerm draws its own title bar and borders when the compositor refuses server-side decorations, rather than showing no frame at all. Dragging an empty part of the tab bar moves the window. From [wezterm#8145](https://github.com/wezterm/wezterm/pull/8145) by @AlexKichkailo.
-- **That frame is counted in the window geometry.** The size the compositor suggests includes the frame, and the geometry WezTerm declares now does too. Before, resizing from a border left the terminal smaller than the window and stopped following the pointer.
+- **That frame is counted in the window geometry.** The size the compositor suggests includes the frame, and the geometry wsb-wezterm declares now does too. Before, resizing from a border left the terminal smaller than the window and stopped following the pointer.
 - **Resize cursors on the frame's borders and corners while hovering them**, not only once a drag has begun.
 - **A click on the title bar stays on the title bar.** Clicking the frame of a window that did not have the keyboard selected the tab under the click as well: the keyboard entering the window replaced the surface pointer events were sent to, so the press went to the terminal at the title bar's coordinates, which are the tab bar's. Each pointer event now goes to the surface it arrived on.
 
@@ -47,60 +79,31 @@
 
 ### Relaying a pane
 
-- **`wezterm cli relay --pane-id ID` lets another program show a pane and type into it**: a terminal emulator in a web page, for instance. The relay attaches to the multiplexer as a GUI does and writes the pane's screen as escape sequences, a full paint and then only what changed, one JSON event per line on stdout. It reads keys, text, paste and mouse events on stdin, and the multiplexer encodes them with the modes of the terminal in the pane, so the program in it receives what a keyboard would send. It never resizes the pane unless started with `--sized-by-input`, and never takes focus. Scrollback, title, clipboard (OSC 52), bell and the pane's colors come through as events too ([docs](docs/cli/cli/relay.md)).
-- **Clients say what they are for.** A client attaching to a multiplexer registers as a `gui`, a `relay`, or a short-lived `command`, and `wezterm cli list-clients` shows it, so a program can tell whether a GUI is showing a multiplexer's windows. A relay, which shows no windows, also leaves the panes' colors to the GUIs, where a GUI tells the server the colors it uses for every pane.
+- **`wsb-wezterm cli relay --pane-id ID` lets another program show a pane and type into it**: a terminal emulator in a web page, for instance. The relay attaches to the multiplexer as a GUI does and writes the pane's screen as escape sequences, a full paint and then only what changed, one JSON event per line on stdout. It reads keys, text, paste and mouse events on stdin, and the multiplexer encodes them with the modes of the terminal in the pane, so the program in it receives what a keyboard would send. It never resizes the pane unless started with `--sized-by-input`, and never takes focus. Scrollback, title, clipboard (OSC 52), bell and the pane's colors come through as events too ([docs](docs/cli/cli/relay.md)).
+- **Clients say what they are for.** A client attaching to a multiplexer registers as a `gui`, a `relay`, or a short-lived `command`, and `wsb-wezterm cli list-clients` shows it, so a program can tell whether a GUI is showing a multiplexer's windows. A relay, which shows no windows, also leaves the panes' colors to the GUIs, where a GUI tells the server the colors it uses for every pane.
 - **A key is turned into terminal input in one place** (`termwiz::input::KeyInput`), which the GUI and the relay share.
-- **A multiplexer with no domain of its own makes no ssh-agent link.** `wezterm cli proxy` and the relay run no programs that would use one, and each run used to leave an `agent.PID` link behind in the runtime directory.
+- **A multiplexer with no domain of its own makes no ssh-agent link.** `wsb-wezterm cli proxy` and the relay run no programs that would use one, and each run used to leave an `agent.PID` link behind in the runtime directory.
 
 ### Multiplexer clients
 
-These affect a window attached to a mux server, such as with `wezterm connect`:
+These affect a window attached to a mux server, such as with `wsb-wezterm connect`:
 
 - **A re-sync takes the server's tab sizes without sending them back.** A client re-syncs whenever the server reports a tab resized, and used to send the size it had just been told back to the server as a new request. While the window was resized, tabs bounced between sizes, with the programs in them redrawing at each, and could be left at a stale size.
 - **A pane's resizes are sent one at a time, the latest size last.** Before, each one was sent on its own, unordered, and an earlier size could be the last one applied.
-- **Closing a window closes its tabs.** Closing a window whose tabs a server holds kills those tabs in the server, as closing each tab does. Before, it detached the window from the server's whole domain instead: every other window of that server disappeared with it, and the programs in all of them, the closed window's included, ran on. Quitting WezTerm still leaves a server's programs running. A window WezTerm fails to create still detaches its domain, so a failure ends no programs.
+- **Closing a window closes its tabs.** Closing a window whose tabs a server holds kills those tabs in the server, as closing each tab does. Before, it detached the window from the server's whole domain instead: every other window of that server disappeared with it, and the programs in all of them, the closed window's included, ran on. Quitting wsb-wezterm still leaves a server's programs running. A window wsb-wezterm fails to create still detaches its domain, so a failure ends no programs.
 
-Several of these change the multiplexer protocol (codec version 48): GUIs, servers and `wezterm cli` must be built from this fork alike.
+Several of these change the multiplexer protocol (codec version 48): GUIs, servers and `wsb-wezterm cli` must be built from this fork alike.
 
----
+## Building
 
-# Wez's Terminal
+[docs/install/source.md](docs/install/source.md) says how to build wsb-wezterm
+from source, and `ci/deploy.sh` packages a build for the platform it runs on.
 
-<img height="128" alt="WezTerm Icon" src="https://raw.githubusercontent.com/wezterm/wezterm/main/assets/icon/wezterm-icon.svg" align="left"> *A GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a>*
+## Supporting WezTerm
 
-User facing docs and guide at: https://wezterm.org/
+If you like WezTerm, please consider sponsoring Wez Furlong's work on it:
 
-![Screenshot](docs/screenshots/two.png)
-
-*Screenshot of wezterm on macOS, running vim*
-
-## Installation
-
-https://wezterm.org/installation
-
-## Getting help
-
-This is a spare time project, so please bear with me.  There are a couple of channels for support:
-
-* You can use the [GitHub issue tracker](https://github.com/wezterm/wezterm/issues) to see if someone else has a similar issue, or to file a new one.
-* Start or join a thread in our [GitHub Discussions](https://github.com/wezterm/wezterm/discussions); if you have general
-  questions or want to chat with other wezterm users, you're welcome here!
-* There is a [Matrix room via Element.io](https://matrix.to/#/#wezterm:matrix.org)
-  for (potentially!) real time discussions.
-
-The GitHub Discussions and Element/Gitter rooms are better suited for questions
-than bug reports, but don't be afraid to use whichever you are most comfortable
-using and we'll work it out.
-
-## Supporting the Project
-
-If you use and like WezTerm, please consider sponsoring it: your support helps
-to cover the fees required to maintain the project and to validate the time
-spent working on it!
-
-[Read more about sponsoring](https://wezterm.org/sponsor.html).
-
-* [![Sponsor WezTerm](https://img.shields.io/github/sponsors/wez?label=Sponsor%20WezTerm&logo=github&style=for-the-badge)](https://github.com/sponsors/wez)
+* [GitHub Sponsors](https://github.com/sponsors/wez)
 * [Patreon](https://patreon.com/WezFurlong)
 * [Ko-Fi](https://ko-fi.com/wezfurlong)
 * [Liberapay](https://liberapay.com/wez)

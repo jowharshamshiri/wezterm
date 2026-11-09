@@ -37,7 +37,7 @@ Additional modes are now supported:
 You may now also set `show_pane_ids=true` to show the pane id alongside the label.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 -- 36 is the default, but you can choose a different size.

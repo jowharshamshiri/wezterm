@@ -24,7 +24,7 @@ The `PaneInformation` struct contains the following fields:
 {{since('20220101-133340-7edc5b5a')}}
 
 Additional fields are available; note that accessing these may not be cheap to
-compute and may slow down wezterm.  Unlike the fields listed above, these are
+compute and may slow down wsb-wezterm.  Unlike the fields listed above, these are
 not pre-computed snapshots of information, so if you don't use them, you won't
 pay the cost of computing them.
 
@@ -34,7 +34,7 @@ pay the cost of computing them.
 This example places the executable name in the tab titles:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 -- Equivalent to POSIX basename(3)
 -- Given "/foo/bar" returns "bar"
@@ -73,7 +73,7 @@ This example shows how to use this event to change the color of the
 tab in the tab bar when there is unseen output.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local config = {}
 
 wezterm.on(
@@ -112,7 +112,7 @@ The `domain_name` field returns the name of the domain with which the pane is as
 This example shows the domain name of the active pane appended to the tab title:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local config = {}
 
 wezterm.on('format-tab-title', function(tab)

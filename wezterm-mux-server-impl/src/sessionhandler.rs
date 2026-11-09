@@ -310,7 +310,7 @@ impl SessionHandler {
                 if let ClientKind::Client(role) = kind {
                     // If this session is a proxy, override the incoming id with
                     // the proxy information so that it is clear what is going
-                    // on from the `wezterm cli list-clients` information
+                    // on from the `wsb-wezterm cli list-clients` information
                     if let Some(proxy_id) = &self.proxy_client_id {
                         client_id.ssh_auth_sock = proxy_id.ssh_auth_sock.clone();
                         // Note that this `via proxy pid` string is coupled
@@ -872,7 +872,7 @@ impl SessionHandler {
                             codec_vers: CODEC_VERSION,
                             version_string: config::wezterm_version().to_owned(),
                             executable_path,
-                            config_file_path: std::env::var_os("WEZTERM_CONFIG_FILE")
+                            config_file_path: std::env::var_os("WSB_WEZTERM_CONFIG_FILE")
                                 .map(Into::into),
                         })))
                     }

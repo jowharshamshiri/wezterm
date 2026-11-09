@@ -498,7 +498,7 @@ impl Window {
             cbClsExtra: 0,
             cbWndExtra: 0,
             hInstance: h_inst,
-            // FIXME: this resource is specific to the wezterm build and this should
+            // FIXME: this resource is specific to the wsb-wezterm build and this should
             // really be made generic for other sorts of windows.
             // The ID is defined in assets/windows/resource.rc
             hIcon: unsafe { LoadIconW(h_inst, MAKEINTRESOURCEW(0x101)) },
@@ -978,7 +978,7 @@ impl WindowOps for Window {
         });
     }
 
-    /// The client area's size in pixels. WezTerm keeps a window's size in
+    /// The client area's size in pixels. wsb-wezterm keeps a window's size in
     /// pixels when it moves to a monitor of another DPI: it does not
     /// resize it for WM_DPICHANGED.
     fn get_content_size(&self) -> Future<ContentSize> {

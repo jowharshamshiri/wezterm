@@ -22,7 +22,7 @@ pane:get_lines_as_escapes(pane:get_dimensions().scrollback_rows)
 ## Example: opening scrollback in a pager
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local io = require 'io'
 local os = require 'os'
 local act = wezterm.action

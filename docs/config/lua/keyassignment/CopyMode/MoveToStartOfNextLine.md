@@ -5,7 +5,7 @@
 Moves the CopyMode cursor position to the first cell in the next line.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 return {

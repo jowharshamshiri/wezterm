@@ -1,4 +1,4 @@
-# wezterm:is_focused()
+# wsb-wezterm:is_focused()
 
 {{since('20221119-145034-49b9839f')}}
 
@@ -9,7 +9,7 @@ The `update-status` event is fired when the focus state changes.
 This example changes the color scheme based on the focus state:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('update-status', function(window, pane)
   local overrides = window:get_config_overrides() or {}

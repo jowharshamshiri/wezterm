@@ -22,7 +22,7 @@ itself return `true` to indicate that default processing should take
 place.
 
 This function has no special knowledge of which events are defined by
-wezterm, or what their required arguments might be.
+wsb-wezterm, or what their required arguments might be.
 
 See [wezterm.on](on.md) for more information about event handling.
 

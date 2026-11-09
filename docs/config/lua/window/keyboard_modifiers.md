@@ -15,7 +15,7 @@ This example shows the current modifier and led status in the right status
 area:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local config = wezterm.config_builder()
 

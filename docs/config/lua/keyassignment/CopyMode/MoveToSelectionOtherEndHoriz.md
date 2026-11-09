@@ -8,7 +8,7 @@ the starting point at the right end, then the cursor and starting point are
 swapped, with the cursor now positioned at the right end.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 return {

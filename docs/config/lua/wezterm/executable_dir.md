@@ -7,11 +7,11 @@ tags:
 
 # `wezterm.executable_dir`
 
-This constant is set to the directory containing the `wezterm`
+This constant is set to the directory containing the `wsb-wezterm`
 executable file.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 wezterm.log_error('Exe dir ' .. wezterm.executable_dir)
 ```
 

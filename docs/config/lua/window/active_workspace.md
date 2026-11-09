@@ -8,7 +8,7 @@ This example demonstrates using the launcher menu to select and create workspace
 and how the workspace can be shown in the right status area.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('update-right-status', function(window, pane)
   window:set_right_status(window:active_workspace())

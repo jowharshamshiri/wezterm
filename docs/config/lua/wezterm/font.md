@@ -13,7 +13,7 @@ This function constructs a lua table that corresponds to the internal `FontAttri
 struct that is used to select a single named font:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   font = wezterm.font 'JetBrains Mono',
@@ -81,27 +81,27 @@ When attributes are specified, the font must match both the family name and
 attributes in order to be selected.
 
 With the exception of being able to synthesize basic bold and italics (really,
-oblique) for non-bitmap fonts, wezterm can only select and use fonts that you
+oblique) for non-bitmap fonts, wsb-wezterm can only select and use fonts that you
 have installed on your system.  The attributes that you specify are used to
 match a font from those that are available, so if you'd like to use a condensed
 font, for example, then you must install the condensed variant of that family.
 
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   font = wezterm.font('JetBrains Mono', { weight = 'Bold' }),
 }
 ```
 
-When resolving fonts from [font_dirs](../config/font_dirs.md), wezterm follows CSS Fonts
+When resolving fonts from [font_dirs](../config/font_dirs.md), wsb-wezterm follows CSS Fonts
 Level 3 compatible font matching, which tries to exactly match the specified
 attributes, but allows for locating a close match within the specified font
 family.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   font = wezterm.font(
@@ -117,7 +117,7 @@ are combined in the same lua table.  This form is most useful when used together
 weights for the different fallback fonts:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   font = wezterm.font {
@@ -135,7 +135,7 @@ settings just for the specified font; this examples shows how to disable the
 default ligature feature just for this particular font:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 return {
   font = wezterm.font {
     family = 'JetBrains Mono',

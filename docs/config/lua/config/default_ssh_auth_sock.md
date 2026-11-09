@@ -7,9 +7,9 @@ tags:
 
 {{since('nightly')}}
 
-Setting this value will cause wezterm to replace the value of the
+Setting this value will cause wsb-wezterm to replace the value of the
 `SSH_AUTH_SOCK` environment when it first starts up, and to use this value for
-the auth socket registered with the multiplexer server (visible via `wezterm
+the auth socket registered with the multiplexer server (visible via `wsb-wezterm
 cli list-clients`).
 
 You won't normally need to set this, but if you are running with an alternative
@@ -22,7 +22,7 @@ running on Gnome the system default is Gnome's keyring agent.
 While you can fix this up in your shell startup files, those are not involved
 when spawning the GUI directly from the desktop environment.
 
-The following wezterm configuration snippet shows how to detect when gnome
+The following wsb-wezterm configuration snippet shows how to detect when gnome
 keyring is set and to selectively replace it with the 1Password agent:
 
 ```lua

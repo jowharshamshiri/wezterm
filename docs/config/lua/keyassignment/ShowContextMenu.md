@@ -7,7 +7,7 @@ Opens the context menu at the mouse pointer. The menu offers the clipboard
 Command Palette, each with the shortcut currently assigned to it. Copy is
 available only while there is a selection.
 
-The menu is drawn by wezterm itself rather than by the operating system, so it
+The menu is drawn by wsb-wezterm itself rather than by the operating system, so it
 looks and behaves the same on every platform and with every front end.
 
 It is the default action for a right-click in the terminal area:

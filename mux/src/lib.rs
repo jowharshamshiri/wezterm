@@ -119,7 +119,6 @@ pub struct Mux {
     domains: RwLock<HashMap<DomainId, Arc<dyn Domain>>>,
     domains_by_name: RwLock<HashMap<String, Arc<dyn Domain>>>,
     subscribers: RwLock<HashMap<usize, Box<dyn Fn(MuxNotification) -> bool + Send + Sync>>>,
-    banner: RwLock<Option<String>>,
     clients: RwLock<HashMap<ClientId, ClientInfo>>,
     identity: RwLock<Option<Arc<ClientId>>>,
     num_panes_by_workspace: RwLock<HashMap<String, usize>>,
@@ -294,7 +293,6 @@ fn allocate_socketpair() -> anyhow::Result<(FileDescriptor, FileDescriptor)> {
 /// relay the actions to the mux thread to apply them to the pane.
 fn read_from_pane_pty(
     pane: Weak<dyn Pane>,
-    banner: Option<String>,
     mut reader: Box<dyn std::io::Read>,
 ) {
     let mut buf = vec![0; BUFSIZE];
@@ -315,7 +313,7 @@ fn read_from_pane_pty(
             localpane::emit_output_for_pane(
                 pane_id,
                 &format!(
-                    "⚠️  wezterm: read_from_pane_pty: \
+                    "⚠️  wsb-wezterm: read_from_pane_pty: \
                     Unable to allocate a socketpair: {err:#}"
                 ),
             );
@@ -328,10 +326,6 @@ fn read_from_pane_pty(
         let dead = Arc::clone(&dead);
         move || parse_buffered_data(pane, &dead, rx)
     });
-
-    if let Some(banner) = banner {
-        tx.write_all(banner.as_bytes()).ok();
-    }
 
     // Loop until the pane or the main mux thread is dead.
     // Read data from the pane pty and send it to the parser thread via tx/rx.
@@ -464,7 +458,6 @@ impl Mux {
             domains_by_name: RwLock::new(domains_by_name),
             domains: RwLock::new(domains),
             subscribers: RwLock::new(HashMap::new()),
-            banner: RwLock::new(None),
             clients: RwLock::new(HashMap::new()),
             identity: RwLock::new(None),
             num_panes_by_workspace: RwLock::new(HashMap::new()),
@@ -809,9 +802,8 @@ impl Mux {
         self.panes.write().insert(pane.pane_id(), Arc::clone(pane));
         let pane_id = pane.pane_id();
         if let Some(reader) = pane.reader()? {
-            let banner = self.banner.read().clone();
             let pane = Arc::downgrade(pane);
-            thread::spawn(move || read_from_pane_pty(pane, banner, reader));
+            thread::spawn(move || read_from_pane_pty(pane, reader));
         }
         self.recompute_pane_count();
         self.notify(MuxNotification::PaneAdded(pane_id));
@@ -1139,10 +1131,6 @@ impl Mux {
         }
 
         self.prune_dead_windows();
-    }
-
-    pub fn set_banner(&self, banner: Option<String>) {
-        *self.banner.write() = banner;
     }
 
     pub fn resolve_spawn_tab_domain(

@@ -200,7 +200,7 @@ pub fn ssh_domain_to_ssh_config(ssh_dom: &SshDomain) -> anyhow::Result<ConfigMap
 
     let mut ssh_config = ssh_config.for_host(&remote_host_name);
     ssh_config.insert(
-        "wezterm_ssh_backend".to_string(),
+        "wsb_wezterm_ssh_backend".to_string(),
         match ssh_dom
             .ssh_backend
             .unwrap_or_else(|| config::configuration().ssh_backend)
@@ -223,7 +223,10 @@ pub fn ssh_domain_to_ssh_config(ssh_dom: &SshDomain) -> anyhow::Result<ConfigMap
     if ssh_dom.no_agent_auth {
         ssh_config.insert("identitiesonly".to_string(), "yes".to_string());
     }
-    if let Some("true") = ssh_config.get("wezterm_ssh_verbose").map(|s| s.as_str()) {
+    if let Some("true") = ssh_config
+        .get("wsb_wezterm_ssh_verbose")
+        .map(|s| s.as_str())
+    {
         log::info!("Using ssh config: {ssh_config:#?}");
     }
     Ok(ssh_config)
@@ -267,7 +270,7 @@ impl RemoteSshDomain {
         // One option is to forward the mux via unix domain, another is to
         // embed the mux protocol in an escape sequence and just use the
         // existing terminal connection
-        env.insert("WEZTERM_REMOTE_PANE".to_string(), pane_id.to_string());
+        env.insert("WSB_WEZTERM_REMOTE_PANE".to_string(), pane_id.to_string());
 
         fn build_env_command(
             dir: Option<String>,
@@ -762,7 +765,7 @@ impl Domain for RemoteSshDomain {
         let terminal = wezterm_term::Terminal::new(
             size,
             std::sync::Arc::new(config::TermConfig::new()),
-            "WezTerm",
+            config::identity::NAME,
             config::wezterm_version(),
             Box::new(writer.clone()),
         );

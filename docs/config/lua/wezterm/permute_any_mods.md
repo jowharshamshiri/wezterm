@@ -24,7 +24,7 @@ An array holding all of those combinations is returned.
 If this is your only binding, or it is the _last_ binding, the resulting array can be unpacked into a lua table initializer and used like this:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   mouse_bindings = {

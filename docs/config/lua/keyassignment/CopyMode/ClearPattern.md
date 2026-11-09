@@ -5,7 +5,7 @@
 Clear the CopyMode/SearchMode search pattern.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 return {

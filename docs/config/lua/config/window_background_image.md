@@ -9,13 +9,13 @@ tags:
 
 {{since('20201031-154415-9614e117')}}
 
-You can attach an image to the background of the wezterm window:
+You can attach an image to the background of the wsb-wezterm window:
 ```lua
 config.window_background_image = '/path/to/wallpaper.jpg'
 ```
 
 If the path is a relative path then it will be expanded relative to the
-directory containing your `wezterm.lua` config file.
+directory containing your `wsb-wezterm.lua` config file.
 
 PNG, JPEG, GIF, BMP, ICO, TIFF, PNM, DDS, TGA and farbfeld files can be
 loaded. Animated GIF and PNG files will animate while the window has focus.

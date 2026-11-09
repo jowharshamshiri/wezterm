@@ -4,7 +4,7 @@ use luahelper::impl_lua_conversion_dynamic;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
-    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    let wezterm_mod = get_or_create_module(lua, config::identity::NAME)?;
     wezterm_mod.set("battery_info", lua.create_function(battery_info)?)?;
     Ok(())
 }

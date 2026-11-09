@@ -955,7 +955,7 @@ impl Domain for ClientDomain {
             result.tab_id,
             result.pane_id,
             size,
-            "wezterm",
+            config::identity::NAME,
         ));
         let tab = Arc::new(Tab::new(&size));
         tab.assign_pane(&pane);
@@ -1017,7 +1017,7 @@ impl Domain for ClientDomain {
             result.tab_id,
             result.pane_id,
             result.size,
-            "wezterm",
+            config::identity::NAME,
         ));
 
         let pane_index = match tab
@@ -1055,7 +1055,7 @@ impl Domain for ClientDomain {
             }),
             ClientRole::Relay | ClientRole::Command => ConnectionUI::new_headless(),
         };
-        ui.title("wezterm: Connecting...");
+        ui.title(&format!("{}: Connecting...", config::identity::NAME));
 
         ui.async_run_and_log_error({
             let ui = ui.clone();

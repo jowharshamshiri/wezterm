@@ -12,7 +12,7 @@ This example shows how to add a key assignment for `Backspace` to `copy_mode`,
 without having to manually specify the entire key table:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 local copy_mode = nil

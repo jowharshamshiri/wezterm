@@ -56,7 +56,7 @@ pub fn get_or_create_sub_module<'lua>(
     lua: &'lua Lua,
     name: &str,
 ) -> anyhow::Result<mlua::Table<'lua>> {
-    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    let wezterm_mod = get_or_create_module(lua, crate::identity::NAME)?;
     let sub = wezterm_mod.get(name)?;
     match sub {
         Value::Nil => {
@@ -66,7 +66,8 @@ pub fn get_or_create_sub_module<'lua>(
         }
         Value::Table(sub) => Ok(sub),
         wat => anyhow::bail!(
-            "cannot register module wezterm.{name} as it is already set to a value of type {}",
+            "cannot register module {}.{name} as it is already set to a value of type {}",
+            crate::identity::NAME,
             wat.type_name()
         ),
     }
@@ -189,21 +190,21 @@ fn config_builder_new_index<'lua>(
 /// the environment.
 ///
 /// The `package.path` is configured to search the user's
-/// wezterm specific config paths for lua modules, should
+/// wsb-wezterm specific config paths for lua modules, should
 /// they choose to `require` additional code from their config.
 ///
-/// A `wezterm` module is registered so that the script can
-/// `require "wezterm"` and call into functions provided by
-/// wezterm.  The wezterm module contains:
-/// * `executable_dir` - the directory containing the wezterm
+/// A `wsb-wezterm` module is registered so that the script can
+/// `require "wsb-wezterm"` and call into functions provided by
+/// wsb-wezterm.  The module contains:
+/// * `executable_dir` - the directory containing the wsb-wezterm
 ///   executable.  This is potentially useful for portable
 ///   installs on Windows.
-/// * `config_dir` - the directory containing the wezterm
+/// * `config_dir` - the directory containing the wsb-wezterm
 ///   configuration.
 /// * `log_error` - a function that logs to stderr (or the server
-///   log file for daemonized wezterm).
+///   log file for daemonized wsb-wezterm).
 /// * `target_triple` - the rust compilation target triple.
-/// * `version` - the version of the running wezterm instance.
+/// * `version` - the version of the running wsb-wezterm instance.
 /// * `home_dir` - the path to the user's home directory
 ///
 /// In addition to this, the lua standard library, except for
@@ -215,8 +216,8 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
 
     {
         let globals = lua.globals();
-        // This table will be the `wezterm` module in the script
-        let wezterm_mod = get_or_create_module(&lua, "wezterm")?;
+        // This table will be the `wsb-wezterm` module in the script
+        let wezterm_mod = get_or_create_module(&lua, crate::identity::NAME)?;
 
         let package: Table = globals.get("package").context("get _G.package")?;
         let package_path: String = package.get("path").context("get package.path as String")?;
@@ -227,7 +228,7 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
             array.insert(1, format!("{}/?/init.lua", path.display()));
         }
 
-        prefix_path(&mut path_array, &crate::HOME_DIR.join(".wezterm"));
+        prefix_path(&mut path_array, &crate::HOME_DIR.join(".wsb-wezterm"));
         for dir in crate::CONFIG_DIRS.iter() {
             prefix_path(&mut path_array, dir);
         }
@@ -244,11 +245,11 @@ pub fn make_lua_context(config_file: &Path) -> anyhow::Result<Lua> {
                         path.to_str()
                             .ok_or_else(|| anyhow!("current_exe path is not UTF-8"))?,
                     )
-                    .context("set wezterm.executable_dir")?;
+                    .context("set executable_dir")?;
                 if cfg!(windows) {
                     // For a portable windows install, force in this path ahead
                     // of the rest
-                    prefix_path(&mut path_array, &path.join("wezterm_modules"));
+                    prefix_path(&mut path_array, &path.join("wsb_wezterm_modules"));
                 }
             }
         }
@@ -269,7 +270,7 @@ local orig = package.searchers[2]
 package.searchers[2] = function(module)
   local name, err = package.searchpath(module, package.path)
   if name then
-    package.loaded.wezterm.add_to_config_reload_watch_list(name)
+    package.loaded['wsb-wezterm'].add_to_config_reload_watch_list(name)
   end
   return orig(module)
 end
@@ -307,7 +308,7 @@ end
         )?;
         wezterm_mod
             .set("config_file", config_file_str)
-            .context("set wezterm.config_file")?;
+            .context("set config_file")?;
         wezterm_mod
             .set(
                 "config_dir",
@@ -315,7 +316,7 @@ end
                     .to_str()
                     .ok_or_else(|| anyhow!("config dir path is not UTF-8"))?,
             )
-            .context("set wezterm.config_dir")?;
+            .context("set config_dir")?;
 
         lua.set_named_registry_value("wezterm-watch-paths", Vec::<String>::new())?;
         wezterm_mod.set(
@@ -373,7 +374,7 @@ end
         // Define our own os.getenv function that knows how to resolve current
         // environment values from eg: the registry on Windows, or for
         // the current SHELL value on unix, even if the user has changed
-        // those values since wezterm was started
+        // those values since wsb-wezterm was started
         get_or_create_module(&lua, "os")?.set("getenv", lua.create_function(getenv)?)?;
 
         package
@@ -868,6 +869,27 @@ mod test {
     use std::sync::{Arc, Mutex};
 
     #[test]
+    fn the_module_is_required_by_the_program_name_alone() -> anyhow::Result<()> {
+        let lua = make_lua_context(Path::new("/configs/wsb-wezterm.lua"))?;
+
+        let config_file: String = lua
+            .load("return require('wsb-wezterm').config_file")
+            .eval()?;
+        assert_eq!(config_file, "/configs/wsb-wezterm.lua");
+
+        // WezTerm's module name is not an alias of it.
+        let err = lua
+            .load("return require('wezterm')")
+            .eval::<mlua::Value>()
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("module 'wezterm' not found"),
+            "{err}"
+        );
+        Ok(())
+    }
+
+    #[test]
     fn can_register_and_emit_multiple_events() -> anyhow::Result<()> {
         let _ = env_logger::Builder::new()
             .is_test(true)
@@ -923,7 +945,7 @@ mod test {
         smol::block_on(
             lua.load(
                 r#"
-local wezterm = require 'wezterm';
+local wezterm = require 'wsb-wezterm';
 
 wezterm.on('foo', function (n)
     print("lua hook recording " .. n);

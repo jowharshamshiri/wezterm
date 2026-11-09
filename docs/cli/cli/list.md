@@ -1,15 +1,15 @@
-# `wezterm cli list`
+# `wsb-wezterm cli list`
 
-*Run `wezterm cli list --help` to see more help*
+*Run `wsb-wezterm cli list --help` to see more help*
 
 Lists the set of windows, tabs and panes that are being managed.
 
 The default output is tabular:
 
 ```
-$ wezterm cli list
+$ wsb-wezterm cli list
 WINID TABID PANEID WORKSPACE SIZE  TITLE                          CWD
-    0     0      0 default   80x24 wezterm cli list  -- wez@foo:~ file://foo/home/wez/
+    0     0      0 default   80x24 wsb-wezterm cli list  -- wez@foo:~ file://foo/home/wez/
 ```
 
 Each row describes a pane.  The meaning of the fields are:
@@ -27,7 +27,7 @@ Each row describes a pane.  The meaning of the fields are:
 You may request JSON output:
 
 ```
-$ wezterm cli list --format json
+$ wsb-wezterm cli list --format json
 [
   {
     "window_id": 0,
@@ -38,7 +38,7 @@ $ wezterm cli list --format json
       "rows": 24,
       "cols": 80
     },
-    "title": "wezterm cli list --format json -- wez@foo:~",
+    "title": "wsb-wezterm cli list --format json -- wez@foo:~",
     "cwd": "file://foo/home/wez/"
   }
 ]
@@ -48,11 +48,11 @@ $ wezterm cli list --format json
 
 Each entry of the JSON output also has `tab_vars` and `window_vars`: the
 variables of the pane's tab and window, set with
-[wezterm cli set-tab-var](set-tab-var.md) and
-[wezterm cli set-window-var](set-window-var.md).
+[wsb-wezterm cli set-tab-var](set-tab-var.md) and
+[wsb-wezterm cli set-window-var](set-window-var.md).
 
 ## Synopsis
 
 ```console
-{% include "../../examples/cmd-synopsis-wezterm-cli-list--help.txt" %}
+{% include "../../examples/cmd-synopsis-wsb-wezterm-cli-list--help.txt" %}
 ```

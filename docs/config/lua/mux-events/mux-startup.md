@@ -13,7 +13,7 @@ This event is useful for starting a set of programs in a standard
 configuration to save you the effort of doing it manually each time:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local mux = wezterm.mux
 
 -- this is called by the mux server when it starts up.

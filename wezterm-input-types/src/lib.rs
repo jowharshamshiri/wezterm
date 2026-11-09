@@ -500,7 +500,7 @@ bitflags! {
         const SUPER = 1<<4;
         const LEFT_ALT = 1<<5;
         const RIGHT_ALT = 1<<6;
-        /// This is a virtual modifier used by wezterm
+        /// This is a virtual modifier used by wsb-wezterm
         const LEADER = 1<<7;
         const LEFT_CTRL = 1<<8;
         const RIGHT_CTRL = 1<<9;

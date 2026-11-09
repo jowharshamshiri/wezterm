@@ -1,6 +1,6 @@
 ### Font Related Configuration
 
-WezTerm bundles [JetBrains Mono](https://www.jetbrains.com/lp/mono/),
+wsb-wezterm bundles [JetBrains Mono](https://www.jetbrains.com/lp/mono/),
 [Nerd Font Symbols](https://nerdfonts.com) and
 [Noto Color Emoji](https://www.google.com/get/noto/help/emoji/) fonts
 and uses those for the default font configuration.
@@ -18,9 +18,9 @@ config.font =
 
 #### Fallback
 
-WezTerm allows specifying an ordered list of fonts; when resolving
+wsb-wezterm allows specifying an ordered list of fonts; when resolving
 text into glyphs the first font in the list is consulted, and if the
-glyph isn't present in that font, WezTerm proceeds to the next font
+glyph isn't present in that font, wsb-wezterm proceeds to the next font
 in the fallback list.
 
 The default fallback includes the popular [Nerd Font
@@ -38,12 +38,12 @@ config.font = wezterm.font_with_fallback {
 }
 ```
 
-WezTerm will still append its default fallback to whatever list you specify,
+wsb-wezterm will still append its default fallback to whatever list you specify,
 so you needn't worry about replicating that list if you set your own fallback.
 
-If none of the fonts in the fallback list (including WezTerm's default fallback
-list) contain a given glyph, then wezterm will resolve the system fallback list
-and try those fonts too.  If a glyph cannot be resolved, wezterm will render a
+If none of the fonts in the fallback list (including wsb-wezterm's default fallback
+list) contain a given glyph, then wsb-wezterm will resolve the system fallback list
+and try those fonts too.  If a glyph cannot be resolved, wsb-wezterm will render a
 special "Last Resort" glyph as a placeholder.  You may notice the placeholder
 appear momentarily and then refresh itself to the system fallback glyph on some
 systems.
@@ -69,12 +69,12 @@ Additional options for configuring fonts can be found elsewhere in the docs:
 
 ## Troubleshooting Fonts
 
-You may use `wezterm ls-fonts` to have wezterm explain information about which font files it will use for the different text styles.
+You may use `wsb-wezterm ls-fonts` to have wsb-wezterm explain information about which font files it will use for the different text styles.
 
 It shows output like this:
 
 ```console
-$ wezterm ls-fonts
+$ wsb-wezterm ls-fonts
 Primary font:
 wezterm.font_with_fallback({
   -- /home/wez/.fonts/OperatorMonoSSmLig-Medium.otf, FontDirs
@@ -112,10 +112,10 @@ wezterm.font_with_fallback({
 ...
 ```
 
-You can ask wezterm to including a listing of all of the fonts on the system in a form that can be copied and pasted into the configuration file:
+You can ask wsb-wezterm to including a listing of all of the fonts on the system in a form that can be copied and pasted into the configuration file:
 
 ```console
-$ wezterm ls-fonts --list-system
+$ wsb-wezterm ls-fonts --list-system
 <same output as above, but then:>
 112 fonts found in your font_dirs + built-in fonts:
 wezterm.font("Cascadia Code", {weight="ExtraLight", stretch="Normal", italic=false}) -- /home/wez/.fonts/CascadiaCode.ttf index=0 variation=1, FontDirs
@@ -146,7 +146,7 @@ the `a` and the `b` are separated by a special symbol which is not present in
 the main font, so we expect to see a different font used for that glyph:
 
 ```console
-$ wezterm ls-fonts --text a🞄b
+$ wsb-wezterm ls-fonts --text a🞄b
 a    \u{61}       x_adv=8  glyph=29   wezterm.font("Operator Mono SSm Lig", {weight="DemiLight", stretch="Normal", italic=false})
                                       /home/wez/.fonts/OperatorMonoSSmLig-Medium.otf, FontDirs
 🞄    \u{1f784}    x_adv=4  glyph=9129 wezterm.font("Symbola", {weight="Regular", stretch="SemiCondensed", italic=false})

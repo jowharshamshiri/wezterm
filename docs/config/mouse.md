@@ -24,7 +24,7 @@ bypassing mouse reporting capture.
 
 ## Default Mouse Assignments
 
-*Note: you can run `wezterm show-keys` to show the effective key and mouse assignments*.
+*Note: you can run `wsb-wezterm show-keys` to show the effective key and mouse assignments*.
 
 In the table below, `Triple Left Down` means that the left mouse button is
 being triple clicked and that the event matches the downstroke of the third
@@ -77,7 +77,7 @@ config.disable_default_mouse_bindings = true
 You can define mouse actions using the `mouse_bindings` configuration section:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 local config = {}
 
@@ -167,7 +167,7 @@ You can handle vertical wheel scroll events using the example shown below. The
 delta scroll value while handling the event.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 local config = {}
 
@@ -202,7 +202,7 @@ event, but not the 'Up' event (which is bound to something in your config).
 To avoid this, it is recommended to disable the 'Down' event (to ensure it won't
 be sent to the running program), for example:
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 local config = {}
 

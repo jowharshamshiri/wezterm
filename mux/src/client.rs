@@ -45,10 +45,10 @@ pub enum ClientRole {
     /// A GUI showing the mux's windows.
     Gui,
     /// A program mirroring a pane for another program
-    /// (`wezterm cli relay`); it shows no windows.
+    /// (`wsb-wezterm cli relay`); it shows no windows.
     Relay,
     /// A short-lived command run against the mux, such as
-    /// `wezterm start` asking a running GUI to spawn.
+    /// `wsb-wezterm start` asking a running GUI to spawn.
     Command,
 }
 

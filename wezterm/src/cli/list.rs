@@ -156,10 +156,10 @@ struct CliListResultItem {
     /// Number of rows from the top of the tab area to the top of this pane
     top_row: usize,
     tab_title: String,
-    /// The tab's variables (`wezterm cli set-tab-var`)
+    /// The tab's variables (`wsb-wezterm cli set-tab-var`)
     tab_vars: BTreeMap<String, String>,
     window_title: String,
-    /// The window's variables (`wezterm cli set-window-var`)
+    /// The window's variables (`wsb-wezterm cli set-window-var`)
     window_vars: BTreeMap<String, String>,
     is_active: bool,
     is_zoomed: bool,

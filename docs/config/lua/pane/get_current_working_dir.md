@@ -7,12 +7,12 @@ The current directory can be specified by an application sending
 [OSC 7](../../../shell-integration.md).
 
 If OSC 7 was never sent to a pane, and the pane represents a locally spawned process,
-then wezterm will:
+then wsb-wezterm will:
 
 * On Unix systems, determie the *process group leader* attached to the PTY
 * On Windows systems, use heuristics to infer an equivalent to the foreground process
 
-With the process identified, wezterm will then try to determine the current
+With the process identified, wsb-wezterm will then try to determine the current
 working directory using operating system dependent code:
 
 |OS     |Supported?                            |

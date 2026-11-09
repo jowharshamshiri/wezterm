@@ -1,11 +1,11 @@
 [Desktop Entry]
-Name=WezTerm
-Comment=Wez's Terminal Emulator
+Name=wsb-wezterm
+Comment=A terminal emulator and multiplexer, a fork of WezTerm
 Keywords=shell;prompt;command;commandline;cmd;
-Icon=org.wezfurlong.wezterm
-StartupWMClass=org.wezfurlong.wezterm
-TryExec=wezterm
-Exec=wezterm start --cwd .
+Icon=com.bahramj.wsb-wezterm
+StartupWMClass=com.bahramj.wsb-wezterm
+TryExec=wsb-wezterm
+Exec=wsb-wezterm start --cwd .
 Type=Application
 Categories=System;TerminalEmulator;Utility;
 Terminal=false

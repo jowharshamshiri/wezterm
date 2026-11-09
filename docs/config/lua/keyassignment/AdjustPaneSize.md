@@ -17,7 +17,7 @@ motion keys are used to adjust the size in their conventional directions,
 respectively.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 local config = {}
 

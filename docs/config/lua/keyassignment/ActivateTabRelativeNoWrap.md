@@ -12,7 +12,7 @@ but this one will not wrap around; for example, if the first tab is active
 
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 local config = {}
 

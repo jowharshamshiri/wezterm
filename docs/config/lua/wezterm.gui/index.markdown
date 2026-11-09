@@ -10,7 +10,7 @@ this module from the mux server will return `nil`.
 You will typically use something like:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local gui = wezterm.gui
 if gui then
   -- do something that depends on the gui layer

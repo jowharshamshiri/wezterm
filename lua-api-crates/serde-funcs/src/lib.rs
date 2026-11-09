@@ -30,7 +30,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     // See https://github.com/dtolnay/serde-yaml/issues/226
 
     // For backward compatibility.
-    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    let wezterm_mod = get_or_create_module(lua, config::identity::NAME)?;
     wezterm_mod.set("json_parse", lua.create_function(json_decode)?)?;
     wezterm_mod.set("json_encode", lua.create_function(json_encode)?)?;
 

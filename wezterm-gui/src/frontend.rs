@@ -255,7 +255,7 @@ impl GuiFrontEnd {
 
                     // We send the script to execute to the shell on stdin, rather than ask the
                     // shell to execute it directly, so that we start the shell and read in the
-                    // user's rc files before running the script.  Without this, wezterm on macOS
+                    // user's rc files before running the script.  Without this, wsb-wezterm on macOS
                     // is launched with a default and very anemic path, and that is frustrating for
                     // users.
 

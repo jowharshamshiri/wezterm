@@ -29,7 +29,7 @@ See [wezterm.on](./on.md) and [wezterm.action](./action.md) for more info on wha
 ## Usage
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   keys = {

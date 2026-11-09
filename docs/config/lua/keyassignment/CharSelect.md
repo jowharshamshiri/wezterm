@@ -68,7 +68,7 @@ The `CharSelect` action accepts a lua table with the following fields:
   the same values as [CopyTo](CopyTo.md). The default is
   `'ClipboardAndPrimarySelection'`.
 * `group` - an optional group to pre-select. You may use any of the groups
-  listed above (eg: `"SmileysAndEmotion"`). If omitted, wezterm will default to
+  listed above (eg: `"SmileysAndEmotion"`). If omitted, wsb-wezterm will default to
   `"RecentlyUsed"` if you have previously selected an item, or
   `"SmileysAndEmotion"` otherwise.
 

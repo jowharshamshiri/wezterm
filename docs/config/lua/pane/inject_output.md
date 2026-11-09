@@ -14,7 +14,7 @@ In this contrived and useless example, pressing ALT-k will output `hello there`
 in italics to the current pane:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   keys = {

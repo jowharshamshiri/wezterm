@@ -401,7 +401,7 @@ impl ClientPane {
                 // We get here whenever the pane focus is changed on the
                 // server. That might be due to the user here in the GUI
                 // doing things, or it may be due to a "remote"
-                // `wezterm cli activate-pane-direction` or similar call
+                // `wsb-wezterm cli activate-pane-direction` or similar call
                 // from some other actor.
                 // The latter case is the important one: it is desirable
                 // for the focus change to be reflected locally after it

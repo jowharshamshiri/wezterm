@@ -9,7 +9,7 @@ This example prints the delta scroll value
 when you scroll up with your mouse wheel while holding `CTRL`:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   mouse_bindings = {

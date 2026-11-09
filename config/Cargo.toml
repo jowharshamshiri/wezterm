@@ -10,9 +10,6 @@ publish = false
 [dev-dependencies]
 env_logger.workspace = true
 
-[features]
-distro-defaults = []
-
 [dependencies]
 anyhow.workspace = true
 bitflags.workspace = true

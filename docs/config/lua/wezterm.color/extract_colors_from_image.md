@@ -36,7 +36,7 @@ The default is to extract 16 colors from an image:
 ```
 
 The analysis is relatively expensive and can take several seconds if
-used on a full 4K image file.  To reduce the runtime, wezterm will by
+used on a full 4K image file.  To reduce the runtime, wsb-wezterm will by
 default scale down the image and skip over nearby pixels.  The results
 of the analysis will be cached to avoid repeating the same work each
 time the configuration is re-evaluated.
@@ -105,7 +105,7 @@ found, `min_contrast` is *not* automatically relaxed when retrying with a lower
 This example computes a color palette for the terminal based on some other image file:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local colors = wezterm.color.extract_colors_from_image '/path/to/image/jpeg'
 local ansi = {}

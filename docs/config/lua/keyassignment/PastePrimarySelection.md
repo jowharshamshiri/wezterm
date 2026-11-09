@@ -15,7 +15,7 @@ This action has been removed. Please use [PasteFrom](PasteFrom.md) instead.
 ## Example
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 config.keys = {

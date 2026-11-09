@@ -32,7 +32,7 @@ upon the input.
 ## Example of interactively renaming the current tab
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 local config = wezterm.config_builder()
@@ -66,7 +66,7 @@ the workspace.
 This example also shows the use of `wezterm.format` to emit colored text.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 local config = wezterm.config_builder()

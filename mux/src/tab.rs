@@ -46,7 +46,7 @@ struct TabInner {
     zoomed: Option<Arc<dyn Pane>>,
     title: String,
     /// Named values a program sets to recognize this tab by (see
-    /// `wezterm cli set-tab-var`). Unlike the title, nothing running in a
+    /// `wsb-wezterm cli set-tab-var`). Unlike the title, nothing running in a
     /// pane can change them.
     vars: BTreeMap<String, String>,
     recency: Recency,

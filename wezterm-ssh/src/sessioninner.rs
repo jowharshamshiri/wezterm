@@ -72,7 +72,7 @@ impl SessionInner {
     fn run_impl(&mut self) -> anyhow::Result<()> {
         let backend = self
             .config
-            .get("wezterm_ssh_backend")
+            .get("wsb_wezterm_ssh_backend")
             .map(|s| s.as_str())
             .unwrap_or(
                 #[cfg(feature = "libssh-rs")]
@@ -86,7 +86,7 @@ impl SessionInner {
 
             #[cfg(not(feature = "ssh2"))]
             "ssh2" => anyhow::bail!(
-                "invalid wezterm_ssh_backend value: {}, not compiled with `ssh2`",
+                "invalid wsb_wezterm_ssh_backend value: {}, not compiled with `ssh2`",
                 backend
             ),
 
@@ -95,12 +95,12 @@ impl SessionInner {
 
             #[cfg(not(feature = "libssh-rs"))]
             "libssh" => anyhow::bail!(
-                "invalid wezterm_ssh_backend value: {}, not compiled with `libssh`",
+                "invalid wsb_wezterm_ssh_backend value: {}, not compiled with `libssh`",
                 backend
             ),
 
             _ => anyhow::bail!(
-                "invalid wezterm_ssh_backend value: {}, expected either `ssh2` or `libssh`",
+                "invalid wsb_wezterm_ssh_backend value: {}, expected either `ssh2` or `libssh`",
                 backend
             ),
         }
@@ -134,7 +134,7 @@ impl SessionInner {
         let sess = libssh_rs::Session::new()?;
         let verbose = self
             .config
-            .get("wezterm_ssh_verbose")
+            .get("wsb_wezterm_ssh_verbose")
             .map(|s| s.as_str())
             .unwrap_or("false")
             == "true";
@@ -260,7 +260,7 @@ impl SessionInner {
     fn run_impl_ssh2(&mut self) -> anyhow::Result<()> {
         let verbose = self
             .config
-            .get("wezterm_ssh_verbose")
+            .get("wsb_wezterm_ssh_verbose")
             .map(|s| s.as_str())
             .unwrap_or("false")
             == "true";

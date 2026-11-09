@@ -12,14 +12,14 @@ this can be used to get a string representation of a table or userdata.
 
 The intended purpose is as a human readable way to inspect lua values.  It is not machine
 readable; do not attempt to use it as a serialization format as the format is not guaranteed
-to remain the same across different versions of wezterm.
+to remain the same across different versions of wsb-wezterm.
 
 This same representation is used in the [debug overlay](../keyassignment/ShowDebugOverlay.md)
 when printing the result of an expression from the Lua REPL and for the implicit string
 conversions of the parameters passed to [wezterm.log_info](log_info.md).
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 assert(wezterm.to_string { 1, 2 } == [=[[
     1,
     2,

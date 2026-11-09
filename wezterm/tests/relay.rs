@@ -1,5 +1,5 @@
-//! `wezterm cli relay` against a real `wezterm-mux-server`, on a socket of
-//! its own. The server is the one built beside this crate's `wezterm`:
+//! `wsb-wezterm cli relay` against a real `wsb-wezterm-mux-server`, on a socket of
+//! its own. The server is the one built beside this crate's `wsb-wezterm`:
 //! `cargo build -p wezterm-mux-server` first.
 #![cfg(unix)]
 
@@ -35,7 +35,7 @@ impl Server {
             .unwrap();
         std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
         let socket = dir.path().join("s");
-        let config = dir.path().join("wezterm.lua");
+        let config = dir.path().join("wsb-wezterm.lua");
         std::fs::write(
             &config,
             format!(
@@ -45,7 +45,8 @@ impl Server {
             ),
         )
         .unwrap();
-        let server = Path::new(env!("CARGO_BIN_EXE_wezterm")).with_file_name("wezterm-mux-server");
+        let server =
+            Path::new(env!("CARGO_BIN_EXE_wsb-wezterm")).with_file_name("wsb-wezterm-mux-server");
         assert!(
             server.exists(),
             "{} is missing; build it with: cargo build -p wezterm-mux-server",
@@ -85,14 +86,14 @@ impl Server {
         config: &Path,
     ) -> &'a mut Command {
         command
-            .env("WEZTERM_UNIX_SOCKET", socket)
-            .env("WEZTERM_CONFIG_FILE", config)
+            .env("WSB_WEZTERM_UNIX_SOCKET", socket)
+            .env("WSB_WEZTERM_CONFIG_FILE", config)
             .env("XDG_RUNTIME_DIR", dir)
-            .env_remove("WEZTERM_PANE")
+            .env_remove("WSB_WEZTERM_PANE")
     }
 
     fn wezterm(&self) -> Command {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_wezterm"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_wsb-wezterm"));
         command.arg("--config-file").arg(&self.config);
         Self::environment(&mut command, self.dir.path(), &self.socket, &self.config);
         command
@@ -107,7 +108,7 @@ impl Server {
             .unwrap();
         assert!(
             output.status.success(),
-            "wezterm cli {:?}: {}",
+            "wsb-wezterm cli {:?}: {}",
             args,
             String::from_utf8_lossy(&output.stderr)
         );

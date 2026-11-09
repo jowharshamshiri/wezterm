@@ -13,7 +13,7 @@ are recognized as newlines) and returns the result as an array of strings that
 have the newlines removed.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local example = 'hello\nthere\n'
 

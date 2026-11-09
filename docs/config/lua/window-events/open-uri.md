@@ -10,7 +10,7 @@ For example, if you prefer to launch your preferred MUA in a new window
 in response to clicking on `mailto:` URLs, you could do something like:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('open-uri', function(window, pane, uri)
   local start, match_end = uri:find 'mailto:'

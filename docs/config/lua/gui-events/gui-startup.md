@@ -3,11 +3,11 @@
 {{since('20220624-141144-bd1b7c5d')}}
 
 The `gui-startup` event is emitted once when the GUI server is starting up
-when running the `wezterm start` subcommand.
+when running the `wsb-wezterm start` subcommand.
 
 It is triggered before any default program is started.
 
-If no explicit program was passed to `wezterm start`, and if the
+If no explicit program was passed to `wsb-wezterm start`, and if the
 `gui-startup` event causes any panes to be created then those will take
 precedence over the default program configuration and no additional default
 program will be spawned.
@@ -17,14 +17,14 @@ configuration to save you the effort of doing it manually each time.
 
 This event fires before [gui-attached](gui-attached.md).
 
-This event does not fire for `wezterm connect` invocations.
+This event does not fire for `wsb-wezterm connect` invocations.
 
 {{since('20220807-113146-c2fee766')}}
 
 The event receives an optional [SpawnCommand](../SpawnCommand.md) argument that
-corresponds to any arguments that may have been passed via `wezterm start`.
+corresponds to any arguments that may have been passed via `wsb-wezterm start`.
 In earlier releases if you implemented this event, you would essentially
-prevent `wezterm start -- something` from spawning `something`.
+prevent `wsb-wezterm start -- something` from spawning `something`.
 
 The intent is for you to use the information in the command object to
 spawn a new window, but you can choose to use or ignore it as suits
@@ -33,7 +33,7 @@ your purpose.
 This basic example splits an initial window into thirds:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local mux = wezterm.mux
 local config = {}
 
@@ -53,7 +53,7 @@ return config
 This example creates a default window but makes it maximize on startup:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local mux = wezterm.mux
 local config = {}
 
@@ -68,12 +68,12 @@ return config
 Here's a more elaborate example that configures two workspaces:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local mux = wezterm.mux
 local config = {}
 
 wezterm.on('gui-startup', function(cmd)
-  -- allow `wezterm start -- something` to affect what we spawn
+  -- allow `wsb-wezterm start -- something` to affect what we spawn
   -- in our initial window
   local args = {}
   if cmd then

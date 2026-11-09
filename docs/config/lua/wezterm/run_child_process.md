@@ -14,7 +14,7 @@ and will return a tuple consisting of the boolean success of the invocation,
 the stdout data and the stderr data.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local success, stdout, stderr = wezterm.run_child_process { 'ls', '-l' }
 ```

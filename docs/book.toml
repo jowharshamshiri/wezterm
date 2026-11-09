@@ -1,6 +1,6 @@
 [book]
-title = "Wez's Terminal Emulator"
-author = "Wez Furlong"
+title = "wsb-wezterm"
+author = "Wez Furlong (WezTerm); Bahram Shamshiri (wsb-wezterm)"
 src = "."
 
 [build]
@@ -11,7 +11,7 @@ create-missing = false
 additional-css = ["custom.css", "asciinema-player.css", "mdbook-admonish.css"]
 default-theme = "ayu"
 preferred-dark-theme = "ayu"
-git-repository-url = "https://github.com/wezterm/wezterm"
+git-repository-url = "https://github.com/jowharshamshiri/wsb-wezterm"
 additional-js = ["mermaid.min.js", "mermaid-init.js", "asciinema-player.min.js"]
 
 [output.html.fold]

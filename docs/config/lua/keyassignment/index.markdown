@@ -5,7 +5,7 @@ to control the Window, Tab, Pane state typically when a key or mouse event
 is triggered.
 
 Internally, in the underlying Rust code, `KeyAssignment` is an enum
-type with a variant for each possible action known to wezterm.  In Lua,
+type with a variant for each possible action known to wsb-wezterm.  In Lua,
 enums get represented as a table with a single key corresponding to
 the variant name.
 

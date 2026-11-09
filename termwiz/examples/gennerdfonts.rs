@@ -1,4 +1,4 @@
-//! This is used to generate a table in the wezterm docs
+//! This is used to generate a table in the wsb-wezterm docs
 
 fn main() {
     println!("| | |");

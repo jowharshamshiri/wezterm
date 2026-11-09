@@ -63,7 +63,7 @@ fn main() {
         }
 
         // If a file named `.tag` is present, we'll take its contents for the
-        // version number that we report in wezterm -h.
+        // version number that we report in wsb-wezterm -h.
         let mut ci_tag = String::new();
         if let Ok(tag) = std::fs::read("../.tag") {
             if let Ok(s) = String::from_utf8(tag) {
@@ -118,13 +118,13 @@ BEGIN
     BEGIN
         BLOCK "040904E4"
         BEGIN
-            VALUE "CompanyName",      "Wez Furlong\0"
-            VALUE "FileDescription",  "WezTerm - Wez's Terminal Emulator\0"
+            VALUE "CompanyName",      "Bahram Shamshiri\0"
+            VALUE "FileDescription",  "wsb-wezterm, a fork of WezTerm\0"
             VALUE "FileVersion",      "{version}\0"
             VALUE "LegalCopyright",   "Wez Furlong, MIT licensed\0"
             VALUE "InternalName",     "\0"
             VALUE "OriginalFilename", "\0"
-            VALUE "ProductName",      "WezTerm\0"
+            VALUE "ProductName",      "wsb-wezterm\0"
             VALUE "ProductVersion",   "{version}\0"
         END
     END
@@ -165,14 +165,14 @@ END
         let src_plist = repo_dir
             .join("assets")
             .join("macos")
-            .join("WezTerm.app")
+            .join("wsb-wezterm.app")
             .join("Contents")
             .join("Info.plist");
         let build_target_dir = std::env::var("CARGO_TARGET_DIR")
             .and_then(|s| Ok(std::path::PathBuf::from(s)))
             .unwrap_or(repo_dir.join("target").join(profile));
         let dest_plist = build_target_dir.join("Info.plist");
-        println!("cargo:rerun-if-changed=assets/macos/WezTerm.app/Contents/Info.plist");
+        println!("cargo:rerun-if-changed=assets/macos/wsb-wezterm.app/Contents/Info.plist");
 
         std::fs::copy(&src_plist, &dest_plist)
             .context(format!(

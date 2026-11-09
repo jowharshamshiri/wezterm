@@ -12,7 +12,7 @@ Linux but there will be some slight differences in system behavior (such as
 filesystem capabilities) that you may wish to probe for in the configuration.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 wezterm.log_error(
   'System '
     .. wezterm.target_triple

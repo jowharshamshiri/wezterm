@@ -43,7 +43,7 @@ Overlay](../keyassignment/ShowDebugOverlay.md) (by default: press
 
 The return value is a table with the following keys:
 
-* `active` - contains information about the *active* screen. The active screen is the one which has input focus. On some systems, wezterm will return the same information as the `main` screen screen.
+* `active` - contains information about the *active* screen. The active screen is the one which has input focus. On some systems, wsb-wezterm will return the same information as the `main` screen screen.
 * `main` - contains information about the *main* screen. The main screen is the primary screen: the one that has the menu bar or task bar.
 * `by_name` - a table containing information about each screen, indexed by their name
 * `origin_x`, `origin_y`, `virtual_height`, `virtual_width` - the bounds of the combined desktop geometry spanning all connected screens

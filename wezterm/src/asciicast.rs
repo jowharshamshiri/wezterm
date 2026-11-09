@@ -63,11 +63,11 @@ impl Header {
         let mut env = HashMap::new();
         env.insert("TERM".to_string(), config.term.to_string());
         env.insert(
-            "WEZTERM_VERSION".to_string(),
+            "WSB_WEZTERM_VERSION".to_string(),
             config::wezterm_version().to_string(),
         );
         env.insert(
-            "WEZTERM_TARGET_TRIPLE".to_string(),
+            "WSB_WEZTERM_TARGET_TRIPLE".to_string(),
             config::wezterm_target_triple().to_string(),
         );
         if let Ok(shell) = std::env::var("SHELL") {
@@ -338,7 +338,7 @@ enum Message {
 #[derive(Debug, Parser, Clone)]
 pub struct RecordCommand {
     /// Start in the specified directory, instead of
-    /// the default_cwd defined by your wezterm configuration
+    /// the default_cwd defined by your wsb-wezterm configuration
     #[arg(long)]
     cwd: Option<std::path::PathBuf>,
 
@@ -348,7 +348,7 @@ pub struct RecordCommand {
     outfile: Option<std::path::PathBuf>,
 
     /// Start prog instead of the default_prog defined by your
-    /// wezterm configuration
+    /// wsb-wezterm configuration
     #[arg(value_parser)]
     prog: Vec<OsString>,
 }
@@ -373,7 +373,7 @@ impl RecordCommand {
             ),
             None => {
                 tempfile::Builder::new()
-                    .prefix("wezterm-recording-")
+                    .prefix("wsb-wezterm-recording-")
                     // We use a .txt suffix for convenice when uploading to GH
                     .suffix(".cast.txt")
                     .tempfile()?

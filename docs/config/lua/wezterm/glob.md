@@ -19,7 +19,7 @@ to a path.  If the results have the same prefix as `relative_to` then it will
 be removed from the returned path.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 -- logs the names of all of the conf files under `/etc`
 for _, v in ipairs(wezterm.glob '/etc/*.conf') do

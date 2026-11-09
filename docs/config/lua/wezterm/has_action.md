@@ -12,8 +12,8 @@ tags:
 Returns true if the string *NAME* is a valid key assignment action variant
 that can be used with [wezterm.action](action.md).
 
-This is useful when you want to use a wezterm configuration across multiple
-different versions of wezterm.
+This is useful when you want to use a wsb-wezterm configuration across multiple
+different versions of wsb-wezterm.
 
 ```lua
 if wezterm.has_action 'PromptInputLine' then

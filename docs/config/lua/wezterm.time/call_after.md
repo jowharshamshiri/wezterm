@@ -15,7 +15,7 @@ a background color by extracting the current minute value and scaing
 it to the range 0-255 and using that to assign a background color:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 -- Reload the configuration every minute
 wezterm.time.call_after(60, function()

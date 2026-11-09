@@ -3,7 +3,7 @@
 
 <!-- See also https://github.com/wez/wezterm/commit/e4ae8a844d8feaa43e1de34c5cc8b4f07ce525dd -->
 
-A Wezterm plugin is a package of Lua files that provide
+A wsb-wezterm plugin is a package of Lua files that provide
 some predefined functionality not in the core product.
 
 A plugin is distributed via a Git URL.
@@ -17,7 +17,7 @@ A plugin is distributed via a Git URL.
 Brief example:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local a_plugin = wezterm.plugin.require 'https://github.com/owner/repo'
 
 local config = wezterm.config_builder()
@@ -29,13 +29,13 @@ return config
 
 The plugin URL must use the `HTTPS` or `file` [protocol](https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols).
 
-When Wezterm clones the repo into the runtime directory the default branch (probably `main`)
+When wsb-wezterm clones the repo into the runtime directory the default branch (probably `main`)
 is checked out and used as the plugin source.
 
 Plugins can be configured, for example:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local a_plugin = wezterm.plugin.require 'https://github.com/owner/repo'
 
 local config = wezterm.config_builder()
@@ -53,7 +53,7 @@ return config
 
 ## Updating Plugins
 
-When changes are published to a plugin repository they are not updated in the local Wezterm instance.
+When changes are published to a plugin repository they are not updated in the local wsb-wezterm instance.
 
 Run the command [`wezterm.plugin.update_all()`](lua/wezterm.plugin/update_all.md) to update all local plugins.
 
@@ -87,7 +87,7 @@ To remove the plugin simply delete the appropriate plugin directory.
 
 !!! Info
     When changes are made to the local project, [`wezterm.plugin.update_all()`](lua/wezterm.plugin/update_all.md) must be run
-    to sync the changes into the Wezterm runtime directory for testing and use.
+    to sync the changes into the wsb-wezterm runtime directory for testing and use.
 
 !!! Info
     This assumes development on the repo default branch (i.e. `main`). To use a different
@@ -103,7 +103,7 @@ with the location of the plugin. The plugin directory can be obtained by running
 [
     {
         "component": "filesCssZssZssZsUserssZsdevelopersZsprojectssZsmysDsPlugin",
-        "plugin_dir": "/Users/alec/Library/Application Support/wezterm/plugins/filesCssZssZssZsUserssZsalecsZsprojectssZsbarsDswezterm",
+        "plugin_dir": "/Users/alec/Library/Application Support/wsb-wezterm/plugins/filesCssZssZssZsUserssZsalecsZsprojectssZsbarsDswezterm",
         "url": "file:///Users/developer/projects/my.Plugin",
     },
 ]
@@ -132,13 +132,13 @@ package.path = package.path
 
 ## Making changes to a Existing Plugin
 
-1. Remove the original plugin from Wezterm
+1. Remove the original plugin from wsb-wezterm
 1. Fork the plugin repo
 1. Clone the repo to a local directory
 1. Optionally set an `upstream` remote to the original plugin repo. This makes it easier it merge upstream changes
 1. Create a new branch for development
 1. Make the new branch the default branch with `git symbolic-ref HEAD refs/heads/mybranch`
 1. Set the `plugin_dir` if required (some plugins hard code the value of the plugin directory).
-1. Add the plugin to Wezterm using the file protocol
+1. Add the plugin to wsb-wezterm using the file protocol
 
 Proceed using the develop workflow above

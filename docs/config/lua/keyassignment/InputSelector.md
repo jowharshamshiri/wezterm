@@ -76,7 +76,7 @@ Note: If the InputSelector is started with `fuzzy` set to `false`, then <kbd>Bac
 ## Example of choosing some canned text to enter into the terminal
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 local config = wezterm.config_builder()
 
@@ -131,7 +131,7 @@ return config
 ## Example of dynamically constructing a list
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 local config = wezterm.config_builder()
 
@@ -178,7 +178,7 @@ return config
 ## Example of switching between a list of workspaces with the InputSelector
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 local config = wezterm.config_builder()
 

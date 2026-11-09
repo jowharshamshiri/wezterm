@@ -31,7 +31,7 @@ set `cell_width = 1.2` to increase the horizontal spacing by 20%.  Conversely,
 setting `cell_width = 0.9` will decrease the horizontal spacing by 10%.
 
 This option doesn't adjust the rasterized width of glyphs, it just changes what
-wezterm considers to be the cell boundaries. When rendering monospace, wezterm
+wsb-wezterm considers to be the cell boundaries. When rendering monospace, wsb-wezterm
 advances by the cell width to place successive glyphs.
 
 If you set the scale less than `1.0` then the glyphs won't be truncated or

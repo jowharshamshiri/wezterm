@@ -133,7 +133,7 @@ pub struct Config {
     #[dynamic(default)]
     pub switch_to_last_active_tab_when_closing_tab: bool,
 
-    /// When true, launching a new wezterm instance will prefer
+    /// When true, launching a new wsb-wezterm instance will prefer
     /// to spawn a new tab into an existing instance.
     /// Otherwise, it will spawn a new window.
     #[dynamic(default)]
@@ -211,7 +211,7 @@ pub struct Config {
 
     /// If no `prog` is specified on the command line, use this
     /// instead of running the user's shell.
-    /// For example, to have `wezterm` always run `top` by default,
+    /// For example, to have `wsb-wezterm` always run `top` by default,
     /// you'd use this:
     ///
     /// ```toml
@@ -336,7 +336,7 @@ pub struct Config {
     /// it lists available stylistic sets here:
     /// <https://github.com/tonsky/FiraCode/wiki/How-to-enable-stylistic-sets>
     ///
-    /// and you can set them in wezterm:
+    /// and you can set them in wsb-wezterm:
     ///
     /// ```toml
     /// # Use this for a zero with a dot rather than a line through it
@@ -745,17 +745,6 @@ pub struct Config {
     #[dynamic(default = "default_true")]
     pub automatically_reload_config: bool,
 
-    #[dynamic(default = "default_check_for_updates")]
-    pub check_for_updates: bool,
-    #[dynamic(
-        default,
-        deprecated = "this option no longer does anything and will be removed in a future release"
-    )]
-    pub show_update_window: bool,
-
-    #[dynamic(default = "default_update_interval")]
-    pub check_for_updates_interval_seconds: u64,
-
     /// When set to true, use the CSI-U encoding scheme as described
     /// in http://www.leonerd.org.uk/hacks/fixterms/
     /// This is off by default because @wez and @jsgf find the shift-space
@@ -1025,9 +1014,13 @@ impl Config {
         // multiple.  In addition, it spawns a lot of subprocesses,
         // so we do this bit "by-hand"
 
-        let mut paths = vec![PathPossibility::optional(HOME_DIR.join(".wezterm.lua"))];
+        let mut paths = vec![PathPossibility::optional(
+            HOME_DIR.join(format!(".{}", crate::identity::CONFIG_FILE_NAME)),
+        )];
         for dir in CONFIG_DIRS.iter() {
-            paths.push(PathPossibility::optional(dir.join("wezterm.lua")))
+            paths.push(PathPossibility::optional(
+                dir.join(crate::identity::CONFIG_FILE_NAME),
+            ))
         }
 
         if cfg!(windows) {
@@ -1041,12 +1034,15 @@ impl Config {
             // dir as the executable that will take precedence.
             if let Ok(exe_name) = std::env::current_exe() {
                 if let Some(exe_dir) = exe_name.parent() {
-                    paths.insert(0, PathPossibility::optional(exe_dir.join("wezterm.lua")));
+                    paths.insert(
+                        0,
+                        PathPossibility::optional(exe_dir.join(crate::identity::CONFIG_FILE_NAME)),
+                    );
                 }
             }
         }
-        if let Some(path) = std::env::var_os("WEZTERM_CONFIG_FILE") {
-            log::trace!("Note: WEZTERM_CONFIG_FILE is set in the environment");
+        if let Some(path) = std::env::var_os("WSB_WEZTERM_CONFIG_FILE") {
+            log::trace!("Note: WSB_WEZTERM_CONFIG_FILE is set in the environment");
             paths.insert(0, PathPossibility::required(path.into()));
         }
 
@@ -1074,11 +1070,11 @@ impl Config {
             }
         }
 
-        // We didn't find (or were asked to skip) a wezterm.lua file, so
+        // We didn't find (or were asked to skip) a configuration file, so
         // update the environment to make it simpler to understand this
         // state.
-        std::env::remove_var("WEZTERM_CONFIG_FILE");
-        std::env::remove_var("WEZTERM_CONFIG_DIR");
+        std::env::remove_var("WSB_WEZTERM_CONFIG_FILE");
+        std::env::remove_var("WSB_WEZTERM_CONFIG_DIR");
 
         match Self::try_default() {
             Err(err) => LoadedConfig {
@@ -1149,9 +1145,9 @@ impl Config {
                 // problems earlier than we use them.
                 let _ = cfg.key_bindings();
 
-                std::env::set_var("WEZTERM_CONFIG_FILE", p);
+                std::env::set_var("WSB_WEZTERM_CONFIG_FILE", p);
                 if let Some(dir) = p.parent() {
-                    std::env::set_var("WEZTERM_CONFIG_DIR", dir);
+                    std::env::set_var("WSB_WEZTERM_CONFIG_DIR", dir);
                 }
                 Ok(cfg)
             });
@@ -1215,7 +1211,7 @@ impl Config {
             let literal = value.escape_debug();
             let code = format!(
                 r#"
-                local wezterm = require 'wezterm';
+                local wezterm = require 'wsb-wezterm';
                 local value = {value};
                 if value == nil then
                     error("{literal} evaluated as nil. Check for missing quotes or other syntax issues")
@@ -1585,9 +1581,9 @@ impl Config {
         let mut wsl_env = std::env::var("WSLENV").ok();
 
         // If we are running as an appimage, we will have "$APPIMAGE"
-        // and "$APPDIR" set in the wezterm process. These will be
+        // and "$APPDIR" set in the wsb-wezterm process. These will be
         // propagated to the child processes. Since some apps (including
-        // wezterm) use these variables to detect if they are running in
+        // wsb-wezterm) use these variables to detect if they are running in
         // an appimage, those child processes will be misconfigured.
         // Ensure that they are unset.
         // https://docs.appimage.org/packaging-guide/environment-variables.html#id2
@@ -1618,13 +1614,9 @@ impl Config {
         cmd.env("COLORTERM", "truecolor");
         // TERM_PROGRAM and TERM_PROGRAM_VERSION are an emerging
         // de-facto standard for identifying the terminal.
-        cmd.env("TERM_PROGRAM", "WezTerm");
+        cmd.env("TERM_PROGRAM", crate::identity::NAME);
         cmd.env("TERM_PROGRAM_VERSION", crate::wezterm_version());
     }
-}
-
-fn default_check_for_updates() -> bool {
-    cfg!(not(feature = "distro-defaults"))
 }
 
 fn default_pane_select_fg_color() -> RgbaColor {
@@ -1758,26 +1750,32 @@ fn default_font_size() -> f64 {
 
 pub(crate) fn compute_cache_dir() -> anyhow::Result<PathBuf> {
     if let Some(runtime) = dirs_next::cache_dir() {
-        return Ok(runtime.join("wezterm"));
+        return Ok(runtime.join(crate::identity::NAME));
     }
 
-    Ok(crate::HOME_DIR.join(".local/share/wezterm"))
+    Ok(crate::HOME_DIR
+        .join(".local/share")
+        .join(crate::identity::NAME))
 }
 
 pub(crate) fn compute_data_dir() -> anyhow::Result<PathBuf> {
     if let Some(runtime) = dirs_next::data_dir() {
-        return Ok(runtime.join("wezterm"));
+        return Ok(runtime.join(crate::identity::NAME));
     }
 
-    Ok(crate::HOME_DIR.join(".local/share/wezterm"))
+    Ok(crate::HOME_DIR
+        .join(".local/share")
+        .join(crate::identity::NAME))
 }
 
 pub(crate) fn compute_runtime_dir() -> anyhow::Result<PathBuf> {
     if let Some(runtime) = dirs_next::runtime_dir() {
-        return Ok(runtime.join("wezterm"));
+        return Ok(runtime.join(crate::identity::NAME));
     }
 
-    Ok(crate::HOME_DIR.join(".local/share/wezterm"))
+    Ok(crate::HOME_DIR
+        .join(".local/share")
+        .join(crate::identity::NAME))
 }
 
 pub fn pki_dir() -> anyhow::Result<PathBuf> {
@@ -1885,10 +1883,6 @@ fn default_enq_answerback() -> String {
 
 fn default_tab_max_width() -> usize {
     16
-}
-
-fn default_update_interval() -> u64 {
-    86400
 }
 
 fn default_prefer_egl() -> bool {
@@ -2032,7 +2026,7 @@ impl PathPossibility {
     }
 }
 
-/// Behavior when the program spawned by wezterm terminates
+/// Behavior when the program spawned by wsb-wezterm terminates
 #[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ExitBehavior {
     /// Close the associated pane
@@ -2155,7 +2149,7 @@ impl FromDynamic for BoldBrightening {
 
 #[derive(Debug, FromDynamic, ToDynamic, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ImePreeditRendering {
-    /// IME preedit is rendered by WezTerm itself
+    /// IME preedit is rendered by wsb-wezterm itself
     #[default]
     Builtin,
     /// IME preedit is rendered by system

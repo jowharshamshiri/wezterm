@@ -8,7 +8,7 @@ See [Shell Integration](../../../../shell-integration.md) for more information
 about semantic zones.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 return {

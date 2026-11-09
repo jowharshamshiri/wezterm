@@ -14,7 +14,7 @@ This example copies the current selection + escapes to the clipboard when
 `CTRL+SHIFT+E` is pressed:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   keys = {

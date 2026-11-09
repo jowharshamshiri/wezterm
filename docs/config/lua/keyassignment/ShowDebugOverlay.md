@@ -7,7 +7,7 @@ of a debug log and a lua [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%
 
 The REPL has the following globals available:
 
-* `wezterm` - the [wezterm](../wezterm/index.md) module is pre-imported
+* `wsb-wezterm` - the [wsb-wezterm](../wezterm/index.md) module is pre-imported
 * `window` - the [window](../window/index.md) object for the current window
 
 The lua context in the REPL is not connected to any global state; you cannot use it

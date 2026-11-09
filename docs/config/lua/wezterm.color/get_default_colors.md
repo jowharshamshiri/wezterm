@@ -12,7 +12,7 @@ colors to red.  One of the schemes is the default set of colors, while the
 other is one of the many built-in schemes:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local my_gruvbox = wezterm.color.get_builtin_schemes()['Gruvbox Light']
 my_gruvbox.background = 'red'

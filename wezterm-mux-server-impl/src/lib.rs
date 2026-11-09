@@ -18,7 +18,7 @@ fn client_domains(config: &config::ConfigHandle) -> Vec<ClientDomainConfig> {
     }
 
     for ssh_dom in config.ssh_domains().into_iter() {
-        if ssh_dom.multiplexing == SshMultiplexing::WezTerm {
+        if ssh_dom.multiplexing == SshMultiplexing::WsbWezterm {
             domains.push(ClientDomainConfig::Ssh(ssh_dom.clone()));
         }
     }

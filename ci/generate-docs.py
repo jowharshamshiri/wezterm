@@ -324,7 +324,7 @@ document.addEventListener("DOMContentLoaded", function() {{
 
 TOC = [
     Page(
-        "WezTerm",
+        "wsb-wezterm",
         "index.md",
         children=[
             Page("Features", "features.md"),
@@ -340,14 +340,9 @@ TOC = [
         ],
     ),
     Page(
-        "Download",
+        "Installation",
         "installation.md",
         children=[
-            Page("Windows", "install/windows.md"),
-            Page("macOS", "install/macos.md"),
-            Page("Linux", "install/linux.md"),
-            Page("FreeBSD", "install/freebsd.md"),
-            Page("NetBSD", "install/netbsd.md"),
             Page("Build from source", "install/source.md"),
         ],
     ),
@@ -379,7 +374,7 @@ TOC = [
                 "config/lua/config",
             ),
             Gen(
-                "module: wezterm",
+                "module: wsb-wezterm",
                 "config/lua/wezterm",
             ),
             Gen(
@@ -462,17 +457,17 @@ TOC = [
         "CLI Reference",
         "cli/general.md",
         children=[
-            Gen("wezterm cli", "cli/cli"),
-            Page("wezterm connect", "cli/connect.md"),
-            Page("wezterm imgcat", "cli/imgcat.md"),
-            Page("wezterm ls-fonts", "cli/ls-fonts.md"),
-            Page("wezterm record", "cli/record.md"),
-            Page("wezterm replay", "cli/replay.md"),
-            Page("wezterm serial", "cli/serial.md"),
-            Page("wezterm set-working-directory", "cli/set-working-directory.md"),
-            Page("wezterm show-keys", "cli/show-keys.md"),
-            Page("wezterm ssh", "cli/ssh.md"),
-            Page("wezterm start", "cli/start.md"),
+            Gen("wsb-wezterm cli", "cli/cli"),
+            Page("wsb-wezterm connect", "cli/connect.md"),
+            Page("wsb-wezterm imgcat", "cli/imgcat.md"),
+            Page("wsb-wezterm ls-fonts", "cli/ls-fonts.md"),
+            Page("wsb-wezterm record", "cli/record.md"),
+            Page("wsb-wezterm replay", "cli/replay.md"),
+            Page("wsb-wezterm serial", "cli/serial.md"),
+            Page("wsb-wezterm set-working-directory", "cli/set-working-directory.md"),
+            Page("wsb-wezterm show-keys", "cli/show-keys.md"),
+            Page("wsb-wezterm ssh", "cli/ssh.md"),
+            Page("wsb-wezterm start", "cli/start.md"),
         ],
     ),
     Page(
@@ -489,12 +484,9 @@ TOC = [
         children=[
             Page("Troubleshooting", "troubleshooting.md"),
             Page("F.A.Q.", "faq.md"),
-            Page("Getting Help", "help.md"),
-            Page("Contributing", "contributing.md"),
         ],
     ),
-    Page("Change Log", "changelog.md"),
-    Page("Sponsor", "sponsor.md"),
+    Page("Sponsor WezTerm", "sponsor.md"),
 ]
 
 os.chdir("docs")

@@ -15,7 +15,7 @@ Possible values for ZONE are:
 * `"Prompt"`
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 return {

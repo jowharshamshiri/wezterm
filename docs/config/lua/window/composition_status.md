@@ -11,7 +11,7 @@ This example shows how to show the composition status in the status area.
 The cursor color is also changed to `orange` when in this state.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('update-right-status', function(window, pane)
   local compose = window:composition_status()

@@ -12,9 +12,9 @@ tags:
 A special userdata value that can be used to resolve the symbolic name
 of a glyph from the [Nerd Fonts](https://www.nerdfonts.com/cheat-sheet)
 font set into a string that can be used for example when formatting
-status lines and titles in your wezterm configuration.
+status lines and titles in your wsb-wezterm configuration.
 
-WezTerm includes `Nerd Font Symbols Font` as a default font fallback
+wsb-wezterm includes `Nerd Font Symbols Font` as a default font fallback
 which means that these special symbols are available even without 
 requiring you to use a patched font.
 
@@ -23,7 +23,7 @@ Awesome glyph representing a clock, and use that together with the current
 date/time in the status area:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('update-right-status', function(window, pane)
   -- "Wed Mar 3 08:14"

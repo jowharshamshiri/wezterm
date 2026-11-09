@@ -10,7 +10,7 @@ use wezterm_client::client::Client;
 pub struct SplitPane {
     /// Specify the pane that should be split.
     /// The default is to use the current pane based on the
-    /// environment variable WEZTERM_PANE.
+    /// environment variable WSB_WEZTERM_PANE.
     #[arg(long)]
     pane_id: Option<PaneId>,
 
@@ -61,7 +61,7 @@ pub struct SplitPane {
     move_pane_id: Option<PaneId>,
 
     /// Instead of executing your shell, run PROG.
-    /// For example: `wezterm cli split-pane -- bash -l` will spawn bash
+    /// For example: `wsb-wezterm cli split-pane -- bash -l` will spawn bash
     /// as if it were a login shell.
     #[arg(value_parser, value_hint=ValueHint::CommandWithArguments, num_args=1..)]
     prog: Vec<OsString>,

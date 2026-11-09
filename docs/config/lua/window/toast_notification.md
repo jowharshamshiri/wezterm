@@ -24,10 +24,10 @@ It's not an ideal implementation because there may be multiple windows and thus
 multiple notifications:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('window-config-reloaded', function(window, pane)
-  window:toast_notification('wezterm', 'configuration reloaded!', nil, 4000)
+  window:toast_notification('wsb-wezterm', 'configuration reloaded!', nil, 4000)
 end)
 
 return {}

@@ -287,7 +287,7 @@ pub trait WindowOps {
     /// system keeps it in while the window moves between screens of
     /// different scales: points on macOS, the surface's logical pixels
     /// on Wayland, and pixels on X11 and Windows, where a window keeps
-    /// its size in pixels when it moves (on Windows, WezTerm does not
+    /// its size in pixels when it moves (on Windows, wsb-wezterm does not
     /// resize its windows for a screen's DPI). Unlike a size in pixels,
     /// it gives a window the same size on every screen.
     fn get_content_size(&self) -> Future<ContentSize>;

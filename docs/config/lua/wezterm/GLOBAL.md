@@ -11,9 +11,9 @@ tags:
 Provides global, in-process, in-memory, data storage for json-like variables
 that persists across config reloads.
 
-wezterm's lua files may be re-loaded and re-evaluated multiple times in
+wsb-wezterm's lua files may be re-loaded and re-evaluated multiple times in
 different contexts or in different threads. If you'd like to keep track
-of state that lasts for the lifetime of your wezterm process then you
+of state that lasts for the lifetime of your wsb-wezterm process then you
 cannot simply use global variables in the lua script.
 
 `wezterm.GLOBAL` is a special userdata value that acts like a table.
@@ -29,7 +29,7 @@ loaded in the right status bar. Watch it increase when you press the
 (`CTRL-SHIFT-R`):
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 -- Count how many times the lua config has been loaded
 wezterm.GLOBAL.parse_count = (wezterm.GLOBAL.parse_count or 0) + 1

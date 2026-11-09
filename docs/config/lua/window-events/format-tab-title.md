@@ -23,7 +23,7 @@ shown in the tab.
 ```lua
 -- This function returns the suggested title for a tab.
 -- It prefers the title that was set via `tab:set_title()`
--- or `wezterm cli set-tab-title`, but falls back to the
+-- or `wsb-wezterm cli set-tab-title`, but falls back to the
 -- title of the active pane in that tab.
 function tab_title(tab_info)
   local title = tab_info.tab_title
@@ -78,7 +78,7 @@ used instead.
 
 When the tab bar is computed, this event is called twice for each tab;
 on the first pass, `hover` will be `false` and `max_width` will be set
-to [tab_max_width](../config/tab_max_width.md).  WezTerm will then compute
+to [tab_max_width](../config/tab_max_width.md).  wsb-wezterm will then compute
 the tab widths that will fit in the tab bar, and then call the event again
 for the set of tabs, this time with appropriate `hover` and `max_width`
 values.
@@ -90,7 +90,7 @@ sense to define multiple instances of the event with multiple
 A more elaborate example:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 -- The filled in variant of the < symbol
 local SOLID_LEFT_ARROW = wezterm.nerdfonts.pl_right_hard_divider
@@ -100,7 +100,7 @@ local SOLID_RIGHT_ARROW = wezterm.nerdfonts.pl_left_hard_divider
 
 -- This function returns the suggested title for a tab.
 -- It prefers the title that was set via `tab:set_title()`
--- or `wezterm cli set-tab-title`, but falls back to the
+-- or `wsb-wezterm cli set-tab-title`, but falls back to the
 -- title of the active pane in that tab.
 function tab_title(tab_info)
   local title = tab_info.tab_title

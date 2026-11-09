@@ -1,6 +1,6 @@
 Set or remove a variable of a tab, which programs in its panes cannot change
 
-Usage: wezterm cli set-tab-var [OPTIONS] <NAME> [VALUE]
+Usage: wsb-wezterm cli set-tab-var [OPTIONS] <NAME> [VALUE]
 
 Arguments:
   <NAME>
@@ -14,7 +14,7 @@ Options:
           Specify the target tab by its id
 
       --pane-id <PANE_ID>
-          Specify the current pane. The default is to use the current pane based on the environment variable WEZTERM_PANE.
+          Specify the current pane. The default is to use the current pane based on the environment variable WSB_WEZTERM_PANE.
           
           The pane is used to figure out which tab to set the variable on.
 

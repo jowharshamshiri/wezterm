@@ -1,3 +1,2 @@
-This directory contains the sources for the documentation.
-Read the generated documentation at:
-https://wezterm.org
+This directory contains the sources for the documentation of wsb-wezterm.
+`ci/build-docs.sh` builds them into a site.

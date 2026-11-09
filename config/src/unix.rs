@@ -58,7 +58,7 @@ pub struct UnixDomain {
 
     /// Show time since last response when waiting for a response.
     /// It is recommended to use
-    /// <https://wezterm.org/config/lua/pane/get_metadata.html#since_last_response_ms>
+    /// <https://github.com/jowharshamshiri/wsb-wezterm/blob/main/docs/config/lua/pane/get_metadata.md>
     /// instead.
     #[dynamic(default)]
     pub overlay_lag_indicator: bool,
@@ -118,11 +118,7 @@ impl UnixDomain {
             Some(cmd) => Ok(cmd.iter().map(Into::into).collect()),
             None => Ok(vec![
                 std::env::current_exe()?
-                    .with_file_name(if cfg!(windows) {
-                        "wezterm-mux-server.exe"
-                    } else {
-                        "wezterm-mux-server"
-                    })
+                    .with_file_name(crate::identity::MUX_SERVER_PROGRAM)
                     .into_os_string(),
                 OsString::from("--daemonize"),
             ]),

@@ -1,51 +1,35 @@
-## Installing from source
-
-If your system isn't covered by the pre-built packages then you can build it
-for yourself.  WezTerm should run on any modern unix as well as Windows 10 and
-macOS.
+wsb-wezterm should run on any modern unix as well as Windows 10 and macOS.
 
 * Install `rustup` to get the `rust` compiler installed on your system.
   [Install rustup](https://rust-lang.org/tools/install/).
 * Rust version 1.71 or later is required
 * Build in release mode: `cargo build --release`
-* Run it via either `cargo run --release --bin wezterm` or `target/release/wezterm`
+* Run it via either `cargo run --release --bin wsb-wezterm` or `target/release/wsb-wezterm`
 
-You will need a collection of support libraries; the [`get-deps`](https://github.com/wezterm/wezterm/blob/main/get-deps) script will
-attempt to install them for you.  If it doesn't know about your system,
-[please contribute instructions!](https://github.com/wezterm/wezterm/blob/main/CONTRIBUTING.md).
-
-If you don't plan to submit a pull request to the wezterm repo, you can
-download a smaller source tarball using these steps:
+You will need a collection of support libraries; the [`get-deps`](https://github.com/jowharshamshiri/wsb-wezterm/blob/main/get-deps) script will
+attempt to install them for you.
 
 ```console
 $ curl https://sh.rustup.rs -sSf | sh -s
-$ curl -LO {{ src_stable }}
-$ tar -xzf {{ src_stable_asset }}
-$ cd {{ src_stable_dir }}
-$ ./get-deps
-$ cargo build --release
-$ cargo run --release --bin wezterm -- start
-```
-
-Alternatively, use the full git repo:
-
-```console
-$ curl https://sh.rustup.rs -sSf | sh -s
-$ git clone --depth=1 --branch=main --recursive https://github.com/wezterm/wezterm.git
-$ cd wezterm
+$ git clone --depth=1 --branch=main --recursive https://github.com/jowharshamshiri/wsb-wezterm.git
+$ cd wsb-wezterm
 $ git submodule update --init --recursive
 $ ./get-deps
 $ cargo build --release
-$ cargo run --release --bin wezterm -- start
+$ cargo run --release --bin wsb-wezterm -- start
 ```
 
 **If you get an error about zlib then you most likely didn't initialize the submodules;
 take a closer look at the instructions!**
 
+To package the build for the platform you are on, run `ci/deploy.sh` from the
+root of the source tree after `cargo build --release -p wezterm -p wezterm-gui
+-p wezterm-mux-server -p strip-ansi-escapes`.
+
 ### Building without Wayland support on Unix systems
 
 By default, support for both X11 and Wayland is included on Unix systems.
-If your distribution has X11 but not Wayland, then you can build WezTerm without
+If your distribution has X11 but not Wayland, then you can build wsb-wezterm without
 Wayland support by changing the `build` invocation:
 
 ```console
@@ -57,7 +41,7 @@ Building without X11 is not supported.
 ### Building on Windows
 
 When installing Rust, you must use select the MSVC version of Rust. It is the
-only supported way to build wezterm.
+only supported way to build wsb-wezterm.
 
 On Windows, instead of using `get-deps`, the only other dependency that you need is
 [Strawberry Perl](https://strawberryperl.com). You must ensure that you have
@@ -69,3 +53,5 @@ of perl is required to build openssl on Windows.
 $ set PATH=c:\Strawberry\perl\bin;%PATH%
 ```
 
+Packaging on Windows needs 7-Zip and Inno Setup (`iscc.exe`) on `PATH`, and the
+bash of Git for Windows to run `ci/deploy.sh`.

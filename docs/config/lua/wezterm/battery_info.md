@@ -25,7 +25,7 @@ The return value is an array of objects with the following fields:
 This example shows the battery status for each battery, along with the date and time in the status bar:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('update-right-status', function(window, pane)
   -- "Wed Mar 3 08:14"

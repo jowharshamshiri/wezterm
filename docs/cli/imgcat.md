@@ -1,6 +1,6 @@
-# `wezterm imgcat`
+# `wsb-wezterm imgcat`
 
 ```console
-{% include "../examples/cmd-synopsis-wezterm-imgcat--help.txt" %}
+{% include "../examples/cmd-synopsis-wsb-wezterm-imgcat--help.txt" %}
 ```
 

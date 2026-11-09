@@ -9,13 +9,13 @@ the color scheme definition of the builtin color schemes.
 
 This is useful for programmatically deciding things about the scheme
 to use based on its color, or for taking a scheme and overriding a
-couple of entries just from your `wezterm.lua` configuration file.
+couple of entries just from your `wsb-wezterm.lua` configuration file.
 
-This example shows how to make wezterm pick a random color scheme for
+This example shows how to make wsb-wezterm pick a random color scheme for
 each newly created window:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 -- The set of schemes that we like and want to put in our rotation
 local schemes = {}
@@ -42,7 +42,7 @@ This example shows how to take an existing scheme, modify a color, and
 then use that new scheme to override the default:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local scheme = wezterm.color.get_builtin_schemes()['Gruvbox Light']
 scheme.background = 'red'
@@ -65,7 +65,7 @@ use that to select just the dark schemes and then randomly pick one
 of those for each new window:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local function dark_schemes()
   local schemes = wezterm.color.get_builtin_schemes()

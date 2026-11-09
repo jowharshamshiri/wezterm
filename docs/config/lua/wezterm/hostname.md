@@ -6,14 +6,14 @@ tags:
 
 # `wezterm.hostname()`
 
-This function returns the current hostname of the system that is running wezterm.
+This function returns the current hostname of the system that is running wsb-wezterm.
 This can be useful to adjust configuration based on the host.
 
 Note that environments that use DHCP and have many clients and short leases may
 make it harder to rely on the hostname for this purpose.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local hostname = wezterm.hostname()
 
 local font_size

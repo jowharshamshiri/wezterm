@@ -11,7 +11,7 @@ enabled), when the configuration is explicitly reloaded via the
 when [window:set_config_overrides](../window/set_config_overrides.md) is called
 for the window.
 
-This event is fire-and-forget from the perspective of wezterm; it fires the
+This event is fire-and-forget from the perspective of wsb-wezterm; it fires the
 event to advise of the config change, but has no other expectations.
 
 If you call `window:set_config_overrides` from inside this event callback then
@@ -26,7 +26,7 @@ The second event parameter is a [`pane` object](../pane/index.md) that
 represents the active pane in that window.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 wezterm.on('window-config-reloaded', function(window, pane)
   wezterm.log_info 'the config was reloaded for this window!'

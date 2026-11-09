@@ -14,7 +14,7 @@ expanded by the shell is **not supported**. You can use
 [wezterm.home_dir](../wezterm/home_dir.md) to explicitly refer to your home
 directory.
 
-If `wezterm start --cwd /some/path` is used to specify the current working
+If `wsb-wezterm start --cwd /some/path` is used to specify the current working
 directory, that will take precedence.
 
 Commands launched using [`SpawnCommand`](../SpawnCommand.md) will use the
@@ -49,12 +49,12 @@ graph TD
 ```
 {% endraw %}
 
-On macOS and Linux, `wezterm` can attempt to resolve the process group leader
+On macOS and Linux, `wsb-wezterm` can attempt to resolve the process group leader
 and then attempt to resolve its current working directory. This is not
 guaranteed to succeed, and there are a number of potential edge cases (which is
 another reason for configuring your shell to use OSC 7 sequences).
 
-On Windows, there isn't a process group leader concept, but `wezterm` will
+On Windows, there isn't a process group leader concept, but `wsb-wezterm` will
 examine the process tree of the program that it started in the current pane and
 use some heuristics to determine an approximate equivalent.
 

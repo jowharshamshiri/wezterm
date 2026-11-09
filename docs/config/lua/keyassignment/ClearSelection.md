@@ -9,7 +9,7 @@ when there is a selection present (clearing it afterwards) or sending
 CTRL-C to the terminal when there is no selection:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 config.keys = {

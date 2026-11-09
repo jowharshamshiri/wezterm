@@ -116,7 +116,6 @@ heapless = "0.8"
 hdrhistogram = "7.1"
 hex = {version="0.4", default-features=false}
 hostname = "0.4"
-http_req = "0.11"
 human-sort = "0.2"
 humansize = "2.1"
 humantime = "2.1"

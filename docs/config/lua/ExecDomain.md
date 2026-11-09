@@ -9,7 +9,7 @@ you wrap up that command invocation by passing it through some other process.
 For example, if you wanted to make it more convenient to work with tabs and
 panes inside a docker container, you might want to define an `ExecDomain` that
 causes the commands to be run via `docker exec`.  While you could just ask
-wezterm to explicitly spawn a command that runs `docker exec`, you would also
+wsb-wezterm to explicitly spawn a command that runs `docker exec`, you would also
 need to adjust the default key assignments for splitting panes to know about
 that preference.  Using an `ExecDomain` allows that preference to be associated
 with the pane so that things work more intuitively.
@@ -46,7 +46,7 @@ generated in response to a request to spawn a new tab or split a pane.
 
 It is expected that your fixup function will adjust the various fields
 of the provided command and then return it.  The adjusted command is
-what wezterm will execute in order to satisfy the user's request to
+what wsb-wezterm will execute in order to satisfy the user's request to
 spawn a new program.
 
 ### label
@@ -77,7 +77,7 @@ that affect the styling of the text. You may wish to use
 ## Example: Running commands in their own systemd scope
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local config = {}
 
 -- Equivalent to POSIX basename(3)
@@ -99,15 +99,15 @@ config.exec_domains = {
     wezterm.log_info(cmd)
 
     -- Synthesize a human understandable scope name that is
-    -- (reasonably) unique. WEZTERM_PANE is the pane id that
+    -- (reasonably) unique. WSB_WEZTERM_PANE is the pane id that
     -- will be used for the newly spawned pane.
-    -- WEZTERM_UNIX_SOCKET is associated with the wezterm
+    -- WSB_WEZTERM_UNIX_SOCKET is associated with the wsb-wezterm
     -- process id.
     local env = cmd.set_environment_variables
-    local ident = 'wezterm-pane-'
-      .. env.WEZTERM_PANE
+    local ident = 'wsb-wezterm-pane-'
+      .. env.WSB_WEZTERM_PANE
       .. '-on-'
-      .. basename(env.WEZTERM_UNIX_SOCKET)
+      .. basename(env.WSB_WEZTERM_UNIX_SOCKET)
 
     -- Generate a new argument array that will launch a
     -- program via systemd-run
@@ -115,7 +115,7 @@ config.exec_domains = {
       '/usr/bin/systemd-run',
       '--user',
       '--scope',
-      '--description=Shell started by wezterm',
+      '--description=Shell started by wsb-wezterm',
       '--same-dir',
       '--collect',
       '--unit=' .. ident,
@@ -138,7 +138,7 @@ config.exec_domains = {
 }
 
 -- Making the domain the default means that every pane/tab/window
--- spawned by wezterm will have its own scope
+-- spawned by wsb-wezterm will have its own scope
 config.default_domain = 'scoped'
 
 return config
@@ -151,7 +151,7 @@ so that you can spawn a shell into it and/or split it:
 
 {% raw %}
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local config = wezterm.config_builder()
 
 function docker_list()

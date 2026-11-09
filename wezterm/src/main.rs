@@ -23,11 +23,12 @@ mod cli;
 
 #[derive(Debug, Parser)]
 #[command(
-    about = "Wez's Terminal Emulator\nhttp://github.com/wezterm/wezterm",
+    name = "wsb-wezterm",
+    about = "wsb-wezterm, a fork of WezTerm, Wez Furlong's terminal emulator\nhttps://github.com/jowharshamshiri/wsb-wezterm",
     version = wezterm_version()
 )]
 pub struct Opt {
-    /// Skip loading wezterm.lua
+    /// Skip loading wsb-wezterm.lua
     #[arg(long, short = 'n')]
     skip_config: bool,
 
@@ -107,7 +108,7 @@ enum SubCommand {
     #[command(name = "serial", about = "Open a serial port")]
     Serial(SerialCommand),
 
-    #[command(name = "connect", about = "Connect to wezterm multiplexer")]
+    #[command(name = "connect", about = "Connect to wsb-wezterm multiplexer")]
     Connect(ConnectCommand),
 
     #[command(name = "ls-fonts", about = "Display information about fonts")]
@@ -192,7 +193,7 @@ struct ImgCatCommand {
     /// Set the maximum number of pixels per image frame.
     /// Images will be scaled down so that they do not exceed this size,
     /// unless `--no-resample` is also used.
-    /// The default value matches the limit set by wezterm.
+    /// The default value matches the limit set by wsb-wezterm.
     /// Note that resampling the image here will reduce any animated
     /// images to a single frame.
     #[arg(long, default_value = "25000000")]
@@ -201,7 +202,7 @@ struct ImgCatCommand {
     /// Do not resample images whose frames are larger than the
     /// max-pixels value.
     /// Note that this will typically result in the image refusing
-    /// to display in wezterm.
+    /// to display in wsb-wezterm.
     #[arg(long)]
     no_resample: bool,
 
@@ -771,11 +772,7 @@ fn delegate_to_gui(saver: UmaskSaver) -> anyhow::Result<()> {
     // Restore the original umask
     drop(saver);
 
-    let exe_name = if cfg!(windows) {
-        "wezterm-gui.exe"
-    } else {
-        "wezterm-gui"
-    };
+    let exe_name = config::identity::GUI_PROGRAM;
 
     let exe = std::env::current_exe()?
         .parent()

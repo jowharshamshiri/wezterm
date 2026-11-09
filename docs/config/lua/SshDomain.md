@@ -30,7 +30,7 @@ config.ssh_domains = {
     -- Specify an alternative read timeout
     -- timeout = 60,
 
-    -- The path to the wezterm binary on the remote host.
+    -- The path to the wsb-wezterm binary on the remote host.
     -- Primarily useful if it isn't installed in the $PATH
     -- that is configure for ssh.
     -- remote_wezterm_path = "/home/yourusername/bin/wezterm"
@@ -59,17 +59,17 @@ config.ssh_domains = {
 You may now specify the type of `multiplexing` used by an ssh domain.
 The following values are possible:
 
-* `"WezTerm"` - this is the default; use wezterm's multiplexing client.
-  Having wezterm installed on the server is required to use this mode.
+* `"wsb-wezterm"` - this is the default; use wsb-wezterm's multiplexing client.
+  Having wsb-wezterm installed on the server is required to use this mode.
 * `"None"` - don't use any multiplexing. The connection is an ssh connection
-  using the same mechanism as is used by `wezterm ssh`; losing connectivity
+  using the same mechanism as is used by `wsb-wezterm ssh`; losing connectivity
   will lose any panes/tabs.  This mode of operation is convenient when using
   SSH to connect automatically into eg: a locally hosted WSL instance, together
   with the [default_domain](config/default_domain.md) option.
 
 A new `assume_shell` option, when coupled with `multiplexing = "None"`, allows
-wezterm to assume that the remote host uses a specific shell command language
-dialect, which in turn allows wezterm to respect the
+wsb-wezterm to assume that the remote host uses a specific shell command language
+dialect, which in turn allows wsb-wezterm to respect the
 current working directory as set by [OSC 7 / Shell
 Integration](../../shell-integration.md) on the remote host when spawning new
 panes and tabs.  The following values are recognized for `assume_shell`:
@@ -108,10 +108,10 @@ config.default_domain = 'my.server'
 
 You may now specify the round-trip latency threshold for enabling predictive
 local echo using `local_echo_threshold_ms`. If the measured round-trip latency
-between the wezterm client and the server exceeds the specified threshold, the
+between the wsb-wezterm client and the server exceeds the specified threshold, the
 client will attempt to predict the server's response to key events and echo the
 result of that prediction locally without waiting, hence hiding latency to the
-user. This option only applies when `multiplexing = "WezTerm"`.
+user. This option only applies when `multiplexing = "wsb-wezterm"`.
 
 ```lua
 config.ssh_domains = {

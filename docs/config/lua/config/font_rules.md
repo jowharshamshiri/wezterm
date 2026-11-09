@@ -5,10 +5,10 @@ tags:
 # `font_rules`
 
 When textual output in the terminal is styled with bold, italic or other
-attributes, wezterm uses `font_rules` to decide how to render that text.
+attributes, wsb-wezterm uses `font_rules` to decide how to render that text.
 
 By default, unstyled text will use the font specified by the [font](font.md)
-configuration, and wezterm will use that as a base, and then automatically
+configuration, and wsb-wezterm will use that as a base, and then automatically
 generate appropriate `font_rules` that use heavier weight fonts for bold text,
 lighter weight fonts for dim text and italic fonts for italic text.
 
@@ -161,11 +161,11 @@ config.font_rules = {
 
 ## Debugging Font Rules
 
-You can run `wezterm ls-fonts` to summarize the font rules and the fonts that
+You can run `wsb-wezterm ls-fonts` to summarize the font rules and the fonts that
 match them:
 
 ```console
-$ wezterm ls-fonts
+$ wsb-wezterm ls-fonts
 Primary font:
 wezterm.font_with_fallback({
   -- <built-in>, BuiltIn

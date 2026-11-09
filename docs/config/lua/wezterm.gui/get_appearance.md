@@ -10,14 +10,14 @@ can be one of the following 4 values:
 * `"LightHighContrast"` - light mode but with high contrast colors (not reported on all systems)
 * `"DarkHighContrast"` - dark mode but with high contrast colors (not reported on all systems)
 
-wezterm is able to detect when the appearance has changed and will reload the
+wsb-wezterm is able to detect when the appearance has changed and will reload the
 configuration when that happens.
 
 This example configuration shows how you can have your color scheme
 automatically adjust to the current appearance:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 -- wezterm.gui is not available to the mux server, so take care to
 -- do something reasonable when this config is evaluated by the mux
@@ -43,7 +43,7 @@ return {
 
 ### Wayland GNOME Appearance
 
-wezterm uses [XDG Desktop
+wsb-wezterm uses [XDG Desktop
 Portal](https://flatpak.github.io/xdg-desktop-portal/) to determine the
 appearance in a desktop-environment independent way.
 

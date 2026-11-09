@@ -35,7 +35,7 @@ impl UserData for MuxWindow {
         methods.add_async_method("gui_window", |lua, this, _: ()| async move {
             // Weakly bound to the gui module; mux cannot hard-depend
             // on wezterm-gui, but we can runtime resolve the appropriate module
-            let wezterm_mod = get_or_create_module(lua, "wezterm")
+            let wezterm_mod = get_or_create_module(lua, config::identity::NAME)
                 .map_err(|err| mlua::Error::external(format!("{err:#}")))?;
             let gui: mlua::Table = wezterm_mod.get("gui")?;
             let func: mlua::Function = gui.get("gui_window_for_mux_window")?;

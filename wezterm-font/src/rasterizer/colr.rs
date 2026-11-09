@@ -4,7 +4,7 @@ use wezterm_color_types::{SrgbaPixel, SrgbaTuple};
 /* The gradient related routines in this file were ported from HarfBuzz, which
  * were in turn ported from BlackRenderer by Black Foundry.
  * Used by permission to relicense to HarfBuzz license,
- * which is in turn compatible with wezterm's license.
+ * which is in turn compatible with wsb-wezterm's license.
  *
  * https://github.com/BlackFoundryCom/black-renderer
  */

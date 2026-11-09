@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
-# Update files that are derived from things baked into the executable
+# Update files that are derived from things baked into the executable,
+# from a debug build: `cargo build -p wezterm -p wezterm-gui -p strip-ansi-escapes` first.
+set -e
+
+bin=$(cargo metadata --format-version 1 --no-deps | python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')/debug
 
 for shell in bash zsh fish ; do
-  target/debug/wezterm shell-completion --shell $shell > assets/shell-completion/$shell
+  $bin/wsb-wezterm shell-completion --shell $shell > assets/shell-completion/$shell
 done
 
 for mode in copy_mode search_mode ; do
@@ -12,7 +16,7 @@ for mode in copy_mode search_mode ; do
   # gelatyx doesn't understand the file include mechanism
   # when used in a lua block
   echo "\`\`\`lua" > $fname
-  target/debug/wezterm -n show-keys --lua --key-table $mode >> $fname
+  $bin/wsb-wezterm -n show-keys --lua --key-table $mode >> $fname
   echo "\`\`\`" >> $fname
 done
 
@@ -25,11 +29,11 @@ trim_file() {
   perl -0777 -pe 's/^\n+|\n\K\n+$//g'
 }
 
-cargo run --example narrow $PWD/target/debug/wezterm --help | ./target/debug/strip-ansi-escapes | trim_file > docs/examples/cmd-synopsis-wezterm--help.txt
+cargo run --example narrow $bin/wsb-wezterm --help | $bin/strip-ansi-escapes | trim_file > docs/examples/cmd-synopsis-wsb-wezterm--help.txt
 
 for cmd in start ssh serial connect ls-fonts show-keys imgcat set-working-directory record replay  ; do
-  fname="docs/examples/cmd-synopsis-wezterm-${cmd}--help.txt"
-  cargo run --example narrow $PWD/target/debug/wezterm $cmd --help | ./target/debug/strip-ansi-escapes | trim_file > $fname
+  fname="docs/examples/cmd-synopsis-wsb-wezterm-${cmd}--help.txt"
+  cargo run --example narrow $bin/wsb-wezterm $cmd --help | $bin/strip-ansi-escapes | trim_file > $fname
 done
 
 for cmd in \
@@ -54,6 +58,6 @@ for cmd in \
     split-pane \
     zoom-pane \
     ; do
-  fname="docs/examples/cmd-synopsis-wezterm-cli-${cmd}--help.txt"
-  cargo run --example narrow $PWD/target/debug/wezterm cli $cmd --help | ./target/debug/strip-ansi-escapes | trim_file > $fname
+  fname="docs/examples/cmd-synopsis-wsb-wezterm-cli-${cmd}--help.txt"
+  cargo run --example narrow $bin/wsb-wezterm cli $cmd --help | $bin/strip-ansi-escapes | trim_file > $fname
 done

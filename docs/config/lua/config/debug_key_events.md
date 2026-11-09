@@ -6,8 +6,8 @@ tags:
 # `debug_key_events = false`
 
 When set to true, each key event will be logged by the GUI layer as an INFO
-level log message on the stderr stream from wezterm.  **You will typically need
-to launch `wezterm` directly from another terminal to see this logging**.
+level log message on the stderr stream from wsb-wezterm.  **You will typically need
+to launch `wsb-wezterm` directly from another terminal to see this logging**.
 
 This can be helpful in figuring out how keys are being decoded on your system,
 or for discovering the system-dependent "raw" key code values.
@@ -53,5 +53,5 @@ The key event has a number of fields:
   multiple key-presses based on the system key repeat settings.
 * `key_is_down` indicates whether the key is being pressed or released. This
   will always be true when debug logging, as logging and key press handling is
-  only triggered on key press events in wezterm.
+  only triggered on key press events in wsb-wezterm.
 

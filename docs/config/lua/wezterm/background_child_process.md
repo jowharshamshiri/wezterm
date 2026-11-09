@@ -23,7 +23,7 @@ This example shows how you might set up a custom key assignment that opens
 the terminal background image in a separate image viewer process:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 return {
   window_background_image = '/home/wez/Downloads/sunset-american-fork-canyon.jpg',

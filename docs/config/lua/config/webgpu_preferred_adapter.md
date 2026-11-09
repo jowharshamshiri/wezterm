@@ -67,7 +67,7 @@ config.front_end = 'WebGpu'
 alternatively, I might use:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local config = {}
 local gpus = wezterm.gui.enumerate_gpus()
 
@@ -81,7 +81,7 @@ example will only enable WebGpu if there is an integrated GPU available with
 Vulkan drivers:
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local config = {}
 
 for _, gpu in ipairs(wezterm.gui.enumerate_gpus()) do

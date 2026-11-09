@@ -19,14 +19,14 @@ impl Default for SshBackend {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromDynamic, ToDynamic)]
 pub enum SshMultiplexing {
-    WezTerm,
+    WsbWezterm,
     None,
     // TODO: Tmux-cc in the future?
 }
 
 impl Default for SshMultiplexing {
     fn default() -> Self {
-        Self::WezTerm
+        Self::WsbWezterm
     }
 }
 
@@ -76,23 +76,23 @@ pub struct SshDomain {
 
     /// Show time since last response when waiting for a response.
     /// It is recommended to use
-    /// <https://wezterm.org/config/lua/pane/get_metadata.html#since_last_response_ms>
+    /// <https://github.com/jowharshamshiri/wsb-wezterm/blob/main/docs/config/lua/pane/get_metadata.md>
     /// instead.
     #[dynamic(default)]
     pub overlay_lag_indicator: bool,
 
-    /// The path to the wezterm binary on the remote host
-    pub remote_wezterm_path: Option<String>,
-    /// Override the entire `wezterm cli proxy` invocation that would otherwise
-    /// be computed from remote_wezterm_path and other information.
+    /// The path to the wsb-wezterm binary on the remote host
+    pub remote_wsb_wezterm_path: Option<String>,
+    /// Override the entire `wsb-wezterm cli proxy` invocation that would otherwise
+    /// be computed from remote_wsb_wezterm_path and other information.
     pub override_proxy_command: Option<String>,
 
     pub ssh_backend: Option<SshBackend>,
 
     /// If false, then don't use a multiplexer connection,
     /// just connect directly using ssh. This doesn't require
-    /// that the remote host have wezterm installed, and is equivalent
-    /// to using `wezterm ssh` to connect.
+    /// that the remote host have wsb-wezterm installed, and is equivalent
+    /// to using `wsb-wezterm ssh` to connect.
     #[dynamic(default)]
     pub multiplexing: SshMultiplexing,
 
@@ -126,7 +126,7 @@ impl SshDomain {
             mux_ssh.push(Self {
                 name: format!("SSHMUX:{host}"),
                 remote_address: host.to_string(),
-                multiplexing: SshMultiplexing::WezTerm,
+                multiplexing: SshMultiplexing::WsbWezterm,
                 local_echo_threshold_ms: default_local_echo_threshold_ms(),
                 ..SshDomain::default()
             });

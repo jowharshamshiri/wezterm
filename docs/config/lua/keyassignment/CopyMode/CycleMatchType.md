@@ -8,7 +8,7 @@ smart-case and regular expression match types.
 See [`Search` key assignment](../Search.md) for details about each match types.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 return {

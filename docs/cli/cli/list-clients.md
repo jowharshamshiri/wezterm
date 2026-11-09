@@ -1,11 +1,11 @@
-# `wezterm cli list-clients`
+# `wsb-wezterm cli list-clients`
 
-*Run `wezterm cli list-clients --help` to see more help*
+*Run `wsb-wezterm cli list-clients --help` to see more help*
 
 Lists the set of connected clients and some additional information about them:
 
 ```
-$ wezterm cli list-clients
+$ wsb-wezterm cli list-clients
 USER HOST     PID ROLE CONNECTED     IDLE       WORKSPACE FOCUS
 wez  foo  1098536 gui  166.03140978s 31.40978ms default       0
 ```
@@ -16,9 +16,9 @@ The meanings of the fields are:
 * `HOST` - the hostname associated with the session
 * `PID` - the process id of the client session
 * `ROLE` - what the client is for: `gui` for a GUI showing the multiplexer's
-  windows, `relay` for [wezterm cli relay](relay.md) mirroring a pane for
+  windows, `relay` for [wsb-wezterm cli relay](relay.md) mirroring a pane for
   another program, and `command` for a short-lived command such as
-  `wezterm start` asking a running GUI to spawn. {{since('nightly', inline=True)}}
+  `wsb-wezterm start` asking a running GUI to spawn. {{since('nightly', inline=True)}}
 * `CONNECTED` - shows how long the connection has been established
 * `IDLE` - shows how long it has been since input was received from that client
 * `WORKSPACE` - shows the active workspace for that session
@@ -29,7 +29,7 @@ The meanings of the fields are:
 You may request JSON output:
 
 ```
-$ wezterm cli list-clients --format json
+$ wsb-wezterm cli list-clients --format json
 [
   {
     "username": "wez",
@@ -53,5 +53,5 @@ $ wezterm cli list-clients --format json
 ## Synopsis
 
 ```console
-{% include "../../examples/cmd-synopsis-wezterm-cli-list-clients--help.txt" %}
+{% include "../../examples/cmd-synopsis-wsb-wezterm-cli-list-clients--help.txt" %}
 ```

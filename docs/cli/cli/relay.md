@@ -1,8 +1,8 @@
-# `wezterm cli relay --pane-id ID`
+# `wsb-wezterm cli relay --pane-id ID`
 
 {{since('nightly')}}
 
-*Run `wezterm cli relay --help` to see more help*
+*Run `wsb-wezterm cli relay --help` to see more help*
 
 Relays one pane to another program over stdin and stdout, so that the
 program can show the pane and type into it: a terminal emulator in a web
@@ -19,7 +19,7 @@ exactly what a keyboard would send.
 
 The relay does not change the pane's size unless it is started with
 `--sized-by-input`, and never claims focus: the pane keeps the size and focus
-its other clients give it. [wezterm cli list-clients](list-clients.md) shows
+its other clients give it. [wsb-wezterm cli list-clients](list-clients.md) shows
 the relay with the role `relay`.
 
 It ends when its input ends, or with an `exit` event when the pane does.
@@ -67,7 +67,7 @@ A line that is not one of these is answered with an `error` event, and the
 relay goes on.
 
 ```console
-$ wezterm cli relay --pane-id 0
+$ wsb-wezterm cli relay --pane-id 0
 {"t":"hello","cols":80,"rows":24,"palette":{...},"title":"bash","mouse_grab":false,"sized_by_input":false}
 {"t":"screen","data":"\u001b[H\u001b[2J..."}
 {"t":"text","text":"ls"}
@@ -78,5 +78,5 @@ $ wezterm cli relay --pane-id 0
 ## Synopsis
 
 ```console
-{% include "../../examples/cmd-synopsis-wezterm-cli-relay--help.txt" %}
+{% include "../../examples/cmd-synopsis-wsb-wezterm-cli-relay--help.txt" %}
 ```

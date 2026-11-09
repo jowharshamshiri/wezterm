@@ -12,7 +12,7 @@ use termwiz::surface::Line;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 
 pub fn register(lua: &Lua) -> anyhow::Result<()> {
-    let wezterm_mod = get_or_create_module(lua, "wezterm")?;
+    let wezterm_mod = get_or_create_module(lua, config::identity::NAME)?;
     wezterm_mod.set("nerdfonts", NerdFonts {})?;
     wezterm_mod.set("format", lua.create_function(format)?)?;
     wezterm_mod.set(
@@ -254,7 +254,7 @@ lazy_static::lazy_static! {
                 .color_level(Some(ColorLevel::TrueColor))
                 .colorterm(None)
                 .colorterm_bce(None)
-                .term_program(Some("WezTerm".into()))
+                .term_program(Some(config::identity::NAME.into()))
                 .term_program_version(Some(config::wezterm_version().into())),
         )
         .expect("cannot fail to make internal Capabilities")

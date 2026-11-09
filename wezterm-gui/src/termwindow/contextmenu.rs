@@ -1,6 +1,6 @@
 //! The right-click menu.
 //!
-//! The menu is drawn by wezterm itself, with the same box model as the command
+//! The menu is drawn by wsb-wezterm itself, with the same box model as the command
 //! palette, rather than asked of the platform. Linux has no system context menu
 //! a toolkit-less application can open, so drawing our own is the only way the
 //! menu looks and behaves the same on every OS and with every front end.

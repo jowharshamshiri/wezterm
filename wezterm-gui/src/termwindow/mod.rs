@@ -595,7 +595,7 @@ impl TermWindow {
         match RenderState::new(ctx, &self.fonts, &self.render_metrics, ATLAS_SIZE) {
             Ok(render_state) => {
                 log::debug!(
-                    "OpenGL initialized! {} wezterm version: {}",
+                    "OpenGL initialized! {} wsb-wezterm version: {}",
                     render_info,
                     config::wezterm_version(),
                 );
@@ -854,7 +854,7 @@ impl TermWindow {
 
         let window = Window::new_window(
             &get_window_class(),
-            "wezterm",
+            config::identity::NAME,
             geometry,
             Some(&config),
             Rc::clone(&fontconfig),
@@ -925,7 +925,6 @@ impl TermWindow {
             myself.emit_status_event();
         }
 
-        crate::update::start_update_checker();
         front_end().record_known_window(window, mux_window_id);
 
         Ok(())

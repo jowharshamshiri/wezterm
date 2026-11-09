@@ -934,7 +934,7 @@ pub fn unicode_column_width(s: &str, version: Option<&UnicodeVersion>) -> usize 
 /// This means that a global understanding of the unicode version that
 /// is in use isn't a good solution.
 ///
-/// The approach that wezterm wants to take here is to define a
+/// The approach that wsb-wezterm wants to take here is to define a
 /// configuration value that sets the starting level of unicode conformance,
 /// and to define an escape sequence that can push/pop a desired confirmance
 /// level onto a stack maintained by the terminal emulator.

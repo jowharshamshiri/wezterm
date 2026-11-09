@@ -42,7 +42,7 @@ This example changes the tab edges to the PowerLine arrow symbols:
 ![Demonstrating setting the styling of the left and right tab edges](../../../screenshots/wezterm-tab-edge-styled.png)
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 
 local config = wezterm.config_builder()
 

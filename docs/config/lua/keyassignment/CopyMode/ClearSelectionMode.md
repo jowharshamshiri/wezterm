@@ -5,7 +5,7 @@
 Clears the current CopyMode selection mode without leaving CopyMode.
 
 ```lua
-local wezterm = require 'wezterm'
+local wezterm = require 'wsb-wezterm'
 local act = wezterm.action
 
 return {

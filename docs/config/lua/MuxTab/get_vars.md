@@ -3,7 +3,7 @@
 {{since('nightly')}}
 
 Returns a table of the tab's variables: the names and values set with
-[tab:set_var()](set_var.md) or `wezterm cli set-tab-var`. Nothing running in
+[tab:set_var()](set_var.md) or `wsb-wezterm cli set-tab-var`. Nothing running in
 the tab's panes can change them, so a program can recognize the tab by them
 where its title would not do.
 

@@ -1,11 +1,5 @@
-import json
-
 # https://mkdocs-macros-plugin.readthedocs.io/en/latest/macros/
 def define_env(env):
-    with open("docs/releases.json") as f:
-        for (k, v) in json.load(f).items():
-            env.variables[k] = v
-
 
     @env.macro
     def since(vers, outline=False, inline=False):
@@ -16,15 +10,14 @@ def define_env(env):
             first_line = "*Since: Nightly Builds Only*"
             expanded = "+"
             blurb = f"""
-    The functionality described in this section requires a nightly build of wezterm.
-    You can obtain a nightly build by following the instructions from the
-    [Download]({rel_root}installation.md) section.
+    The functionality described in this section requires a build of wsb-wezterm
+    from its main branch; [Installation]({rel_root}installation.md) says how to build one.
 """
         else:
             first_line = f"*Since: Version {vers}*"
             expanded = ""
             blurb = f"""
-    *The functionality described in this section requires version {vers} of wezterm,
+    *The functionality described in this section requires version {vers} of wsb-wezterm,
     or a more recent version.*
 """
 

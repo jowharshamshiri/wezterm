@@ -2500,16 +2500,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "http_req"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0122ab6637149482eb66b57288ac597bc7eb9859cbaa79dee62fa19a350df3d2"
-dependencies = [
- "native-tls",
- "unicase",
-]
-
-[[package]]
 name = "httparse"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6463,12 +6453,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "unicase"
-version = "2.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbc4bc3a9f746d862c45cb89d705aa10f187bb96c76001afab07a0d35ce60142"
-
-[[package]]
 name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7132,7 +7116,6 @@ dependencies = [
  "frecency",
  "futures",
  "hdrhistogram",
- "http_req",
  "image",
  "k9",
  "lazy_static",
