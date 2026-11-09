@@ -1180,7 +1180,8 @@ mod test {
         assert!(
             single.starts_with("the list the handler returned has the key \"")
                 && single.ends_with(", where a list has only the positions 1, 2, 3 and so on"),
-            "{single}"
+            "{}",
+            single
         );
         assert_eq!(
             error("return { [1] = { separator = true }, [3] = { separator = true } }"),
@@ -1231,7 +1232,8 @@ mod test {
                 "entry 1 of the list the handler returned (\"A\") has an action that is not a \
                  key assignment: "
             ),
-            "{action}"
+            "{}",
+            action
         );
     }
 
@@ -1311,10 +1313,10 @@ mod test {
                         (label.as_str(), shortcut.as_deref()),
                         ("Hello", Some("CTRL-H"))
                     ),
-                    other => panic!("{other:?}"),
+                    other => panic!("{:?}", other),
                 }
             }
-            other => panic!("{other:?}"),
+            other => panic!("{:?}", other),
         }
         assert_eq!(
             menu.action(&[3, 0, 1]),

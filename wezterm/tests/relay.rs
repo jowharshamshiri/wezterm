@@ -135,7 +135,7 @@ impl Server {
             for line in BufReader::new(stdout).lines() {
                 let Ok(line) = line else { break };
                 let value: Value = serde_json::from_str(&line)
-                    .unwrap_or_else(|err| panic!("{line:?} is not JSON: {err}"));
+                    .unwrap_or_else(|err| panic!("{:?} is not JSON: {}", line, err));
                 if tx.send(value).is_err() {
                     break;
                 }
@@ -161,7 +161,9 @@ impl Server {
             }
             assert!(
                 Instant::now() < deadline,
-                "the pane never showed {text:?}; it shows {shown:?}"
+                "the pane never showed {:?}; it shows {:?}",
+                text,
+                shown
             );
             std::thread::sleep(Duration::from_millis(50));
         }
@@ -359,7 +361,7 @@ fn a_relay_whose_input_ends_delivers_what_it_was_given_first_in_order() {
     relay.send(json!({"t": "key", "key": "Enter"}));
     relay.stdin.take();
     let status = relay.child.wait().unwrap();
-    assert!(status.success(), "the relay exited with {status}");
+    assert!(status.success(), "the relay exited with {}", status);
 
     let deadline = Instant::now() + WAIT;
     loop {
