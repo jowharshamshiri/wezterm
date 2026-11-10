@@ -1,0 +1,19 @@
+# The programs built, and the multiplexer's and the command line's tests run,
+# on Linux arm64.
+apiVersion: test.machinegenesis.dev/v1
+kind: TestPlan
+metadata: {name: linux-arm64}
+targets:
+  linux-arm64:
+    uses: ubuntu-2604-arm64-pve
+    resources: {cpu: 4, memory: 8GiB, disk: 64GiB}
+    caches:
+      # QuickRust's home: the toolchain it installs, the crates it downloads
+      # and the builds it keeps, so a second run compiles what changed.
+      rust: {key: quickrust}
+tasks:
+  build-and-test:
+    target: linux-arm64
+    shell: bash
+    command: bash mg-test/build-and-test.sh
+    evidence: [out/logs/**]

@@ -1,0 +1,17 @@
+apiVersion: test.machinegenesis.dev/v1
+kind: TestProject
+metadata: {name: wsb-wezterm}
+# The checkout as it stands, submodules included, and its `.tag`: a guest
+# has no git, and a build names itself (`wsb-wezterm --version`) by `.tag`
+# when git cannot tell it. `.tag` is gitignored, which is why the source is
+# `everything` rather than `tracked`; the checkout holds no build output, as
+# QuickRust builds elsewhere. Run it as:
+#
+#   git -c core.abbrev=8 show -s --format=%cd-%h --date=format:%Y%m%d-%H%M%S > .tag
+#   mg-test run --release-after-snapshot .tag mg-test.yaml
+#
+# There is no macOS plan: no host here makes a macOS guest.
+source: {type: workspace, root: ., contents: everything}
+plans: [mg-test/linux-arm64.yaml]
+defaults:
+  taskTimeout: 4h
