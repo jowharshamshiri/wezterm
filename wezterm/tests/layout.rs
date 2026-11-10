@@ -181,7 +181,8 @@ fn a_split_is_sized_by_the_pane_before_its_divider() {
     );
     assert!(
         err.contains("there is no divider to the right of pane 1"),
-        "{err}"
+        "{}",
+        err
     );
     let err = server.cli_fails(
         &[
@@ -195,7 +196,7 @@ fn a_split_is_sized_by_the_pane_before_its_divider() {
         ],
         "",
     );
-    assert!(err.contains("there is no divider below pane 2"), "{err}");
+    assert!(err.contains("there is no divider below pane 2"), "{}", err);
     let err = server.cli_fails(
         &[
             "resize-split",
@@ -210,7 +211,8 @@ fn a_split_is_sized_by_the_pane_before_its_divider() {
     );
     assert!(
         err.contains("can give its first part 3 to 78 columns, not 79"),
-        "{err}"
+        "{}",
+        err
     );
     assert_eq!(
         tab_shape(&server, 0),
@@ -383,14 +385,19 @@ fn a_layout_that_cannot_be_set_changes_nothing_and_says_why() {
     let refused = |layout: &str| server.cli_fails(&["set-layout", "--pane-id", "0"], layout);
 
     let err = refused(r#"{"root": {"pane": {"id": 0}}}"#);
-    assert!(err.contains("the layout leaves out pane 1 of tab"), "{err}");
+    assert!(
+        err.contains("the layout leaves out pane 1 of tab"),
+        "{}",
+        err
+    );
     let err = refused(
         r#"{"root": {"split": {"direction": "horizontal", "first_cells": 79,
             "first": {"pane": {"id": 0}}, "second": {"pane": {"id": 1}}}}}"#,
     );
     assert!(
         err.contains("root divides 80 columns: its first part can have 1 to 78, not 79"),
-        "{err}"
+        "{}",
+        err
     );
     let err = refused(
         r#"{"root": {"split": {"direction": "horizontal",
@@ -398,20 +405,22 @@ fn a_layout_that_cannot_be_set_changes_nothing_and_says_why() {
     );
     assert!(
         err.contains("the layout names pane 0 more than once"),
-        "{err}"
+        "{}",
+        err
     );
     let err = refused(
         r#"{"root": {"split": {"direction": "horizontal",
             "first": {"pane": {"id": 0}}, "second": {"pane": {"id": 1, "cols": 40}}}}}"#,
     );
-    assert!(err.contains("not one set-layout takes"), "{err}");
+    assert!(err.contains("not one set-layout takes"), "{}", err);
     let err = refused(
         r#"{"root": {"split": {"direction": "horizontal",
             "first": {"pane": {"id": 0, "active": true}}, "second": {"pane": {"id": 1, "active": true}}}}}"#,
     );
     assert!(
         err.contains("the layout makes 2 panes active; one at most"),
-        "{err}"
+        "{}",
+        err
     );
     assert_eq!(tab_shape(&server, 0), before);
     assert_eq!(server.panes().len(), 2);
@@ -432,7 +441,7 @@ fn keys_and_text_reach_a_pane_and_its_text_is_read() {
     server.cli(&["send-keys", "--pane-id", "0", "CTRL+c"]);
     server.wait_for_text(0, "interrupted");
     let err = server.cli_fails(&["send-keys", "--pane-id", "0", "x", "NotAKey"], "");
-    assert!(err.contains("the key \"NotAKey\""), "{err}");
+    assert!(err.contains("the key \"NotAKey\""), "{}", err);
     assert!(!server
         .cli(&["get-text", "--pane-id", "0"])
         .contains("interrupted\nx"));
@@ -555,7 +564,8 @@ fn a_tab_relay_takes_input_for_each_pane_and_sizes_the_tab() {
             .as_str()
             .unwrap()
             .contains("name their \"pane\""),
-        "{err}"
+        "{}",
+        err
     );
     relay.send(json!({"t": "resize", "cols": 30, "rows": 6, "pane": 0}));
     let err = relay.expect("error");
@@ -564,7 +574,8 @@ fn a_tab_relay_takes_input_for_each_pane_and_sizes_the_tab() {
             .as_str()
             .unwrap()
             .contains("sized by the tab's layout"),
-        "{err}"
+        "{}",
+        err
     );
     relay.send(json!({"t": "text", "text": "x", "pane": 7}));
     let err = relay.expect("error");
@@ -573,7 +584,8 @@ fn a_tab_relay_takes_input_for_each_pane_and_sizes_the_tab() {
             .as_str()
             .unwrap()
             .contains("pane 7 is not in the relayed tab"),
-        "{err}"
+        "{}",
+        err
     );
 
     relay.send(json!({"t": "resize", "cols": 60, "rows": 20}));
