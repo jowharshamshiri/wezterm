@@ -1,0 +1,8 @@
+Swap two panes, each taking the other's place and size
+
+Usage: wsb-wezterm cli swap-panes [OPTIONS] --with <WITH>
+
+Options:
+      --pane-id <PANE_ID>  One of the panes. The default is the current pane, from the environment variable WSB_WEZTERM_PANE
+      --with <WITH>        The other pane
+  -h, --help               Print help

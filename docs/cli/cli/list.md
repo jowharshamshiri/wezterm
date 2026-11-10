@@ -49,7 +49,11 @@ $ wsb-wezterm cli list --format json
 Each entry of the JSON output also has `tab_vars` and `window_vars`: the
 variables of the pane's tab and window, set with
 [wsb-wezterm cli set-tab-var](set-tab-var.md) and
-[wsb-wezterm cli set-window-var](set-window-var.md).
+[wsb-wezterm cli set-window-var](set-window-var.md), and
+`foreground_process_name`: the program in the pane's foreground, as the path
+of its executable, or `null` where the pane cannot tell.
+
+For each tab's tree of splits, see [wsb-wezterm cli get-layout](get-layout.md).
 
 ## Synopsis
 

@@ -77,6 +77,18 @@ installed beside it, and the two keep their configuration and state apart:
 
 - **The title bar shows the terminal's background, not the desktop.** An opaque window's background is now the color scheme's background color rather than clear. Where macOS draws the title bar translucent, it showed whatever was behind the window, leaving only the title and the window buttons visible.
 
+### Arranging panes
+
+- **A tab's panes can be arranged freely through `wsb-wezterm cli` and the multiplexer protocol**, so a program, a web page or a Claude Code session can lay out the tab it works in ([docs](docs/cli/cli/index.markdown#arranging-a-tabs-panes)):
+  - `get-layout` prints a tab's tree of splits as JSON: each pane's place and size, its title, working directory, foreground program and terminal device, and which pane is focused and zoomed ([docs](docs/cli/cli/get-layout.md)).
+  - `set-layout` gives a tab a whole layout in one step, from a JSON tree of splits whose sizes are cells or percentages and whose panes are the tab's, panes moved in from other tabs, or new ones ([docs](docs/cli/cli/set-layout.md)).
+  - `resize-split` sets a split's size in cells, as dragging its divider does ([docs](docs/cli/cli/resize-split.md)); `swap-panes` swaps two panes, in one tab or two ([docs](docs/cli/cli/swap-panes.md)); `send-keys` presses keys in a pane, such as `CTRL+c` ([docs](docs/cli/cli/send-keys.md)).
+  - `relay --tab-of-pane ID` relays every pane of a tab and the tab's layout over one connection, following the pane from tab to tab ([docs](docs/cli/cli/relay.md#relaying-a-tab)).
+  - `cli list --format json` reports each pane's `foreground_process_name`.
+- **Every client hears of every change to a tab's layout.** The multiplexer sends `TabLayoutChanged` (WezTerm's `TabResized`) whenever a tab's panes, their places or sizes, the focused pane or the zoomed pane change. WezTerm sent it only for resizes, so a split, a closed pane, a swap or a focus change made by one client reached another only when something else made it re-sync. This changes the multiplexer protocol.
+- **`adjust-pane-size --pane-id ID` moves the divider of that pane.** It moved the divider of the tab's focused pane, whichever pane was named.
+- **Moving a divider resizes the panes nested beyond it.** The panes nearest the divider give or take the cells first, and none goes below one cell. WezTerm kept the first pane of a nested split at its size, so dragging a divider into a nested split shrank the pane beyond it to nothing and pushed it past the edge of the tab.
+
 ### Relaying a pane
 
 - **`wsb-wezterm cli relay --pane-id ID` lets another program show a pane and type into it**: a terminal emulator in a web page, for instance. The relay attaches to the multiplexer as a GUI does and writes the pane's screen as escape sequences, a full paint and then only what changed, one JSON event per line on stdout. It reads keys, text, paste and mouse events on stdin, and the multiplexer encodes them with the modes of the terminal in the pane, so the program in it receives what a keyboard would send. It never resizes the pane unless started with `--sized-by-input`, and never takes focus. Scrollback, title, clipboard (OSC 52), bell and the pane's colors come through as events too ([docs](docs/cli/cli/relay.md)).
@@ -88,7 +100,7 @@ installed beside it, and the two keep their configuration and state apart:
 
 These affect a window attached to a mux server, such as with `wsb-wezterm connect`:
 
-- **A re-sync takes the server's tab sizes without sending them back.** A client re-syncs whenever the server reports a tab resized, and used to send the size it had just been told back to the server as a new request. While the window was resized, tabs bounced between sizes, with the programs in them redrawing at each, and could be left at a stale size.
+- **A re-sync takes the server's tab sizes without sending them back.** A client re-syncs whenever the server reports a change to a tab's layout, and used to send the size it had just been told back to the server as a new request. While the window was resized, tabs bounced between sizes, with the programs in them redrawing at each, and could be left at a stale size.
 - **A pane's resizes are sent one at a time, the latest size last.** Before, each one was sent on its own, unordered, and an earlier size could be the last one applied.
 - **Closing a window closes its tabs.** Closing a window whose tabs a server holds kills those tabs in the server, as closing each tab does. Before, it detached the window from the server's whole domain instead: every other window of that server disappeared with it, and the programs in all of them, the closed window's included, ran on. Quitting wsb-wezterm still leaves a server's programs running. A window wsb-wezterm fails to create still detaches its domain, so a failure ends no programs.
 

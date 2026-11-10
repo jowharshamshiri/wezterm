@@ -1,0 +1,20 @@
+Set the size of a split by the pane before its divider
+
+Usage: wsb-wezterm cli resize-split [OPTIONS] --direction <DIRECTION> --first-cells <FIRST_CELLS>
+
+Options:
+      --pane-id <PANE_ID>
+          The pane before the divider: the split resized is the nearest one around this pane whose first part holds it and whose divider is on the `--direction` side. The default is the current pane, from the environment variable WSB_WEZTERM_PANE
+
+      --direction <DIRECTION>
+          Which divider of the pane: the one to its right, or below it
+
+          Possible values:
+          - right: The divider to the right of the pane
+          - down:  The divider below the pane
+
+      --first-cells <FIRST_CELLS>
+          The cells the split's first part (left of or above the divider) gets; the second part gets the rest
+
+  -h, --help
+          Print help (see a summary with '-h')

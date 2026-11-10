@@ -1,8 +1,9 @@
 Relay a pane to another program over stdin and stdout: its screen as escape sequences, and keys, text, paste and mouse back as events, one JSON object per line
 
-Usage: wsb-wezterm cli relay [OPTIONS] --pane-id <PANE_ID>
+Usage: wsb-wezterm cli relay [OPTIONS] <--pane-id <PANE_ID>|--tab-of-pane <TAB_OF_PANE>>
 
 Options:
-      --pane-id <PANE_ID>  The pane to relay, as `wsb-wezterm cli list` shows it
-      --sized-by-input     Let `resize` events size the pane. Without it the pane keeps the size its other clients give it, and `resize` is refused
-  -h, --help               Print help
+      --pane-id <PANE_ID>          The pane to relay, as `wsb-wezterm cli list` shows it
+      --tab-of-pane <TAB_OF_PANE>  Relay every pane of the tab that holds this pane, and the tab's layout, following the pane when it moves to another tab. Once the pane is gone, the relay goes on with the tab it was last in
+      --sized-by-input             Let `resize` events size the pane, or with `--tab-of-pane` the tab. Without it the pane or tab keeps the size its other clients give it, and `resize` is refused
+  -h, --help                       Print help

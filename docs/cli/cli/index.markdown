@@ -28,5 +28,32 @@ The following rules are used to determine a pane if `--pane-id` is not specified
 
 See also: [wsb-wezterm cli list](list.md)
 
+# Arranging a tab's panes
+
+Any pane of a tab can be placed, sized and moved freely. Every change is made
+by the multiplexer, so every client attached to the tab, GUI windows and
+relays alike, shows the same layout at once, and each of them hears of each
+change.
+
+| To | Use |
+|---|---|
+| Read the tab's tree of splits, each pane's place and size, what runs in it, and which pane is focused and zoomed | [get-layout](get-layout.md) |
+| Split any pane on any side, at a size | [split-pane](split-pane.md) |
+| Set a split's size in cells | [resize-split](resize-split.md) |
+| Move a divider by some cells | [adjust-pane-size](adjust-pane-size.md) |
+| Move a pane beside another, in its tab or another | [split-pane --move-pane-id](split-pane.md#moving-a-pane) |
+| Move a pane to a tab of its own | [move-pane-to-new-tab](move-pane-to-new-tab.md) |
+| Swap two panes | [swap-panes](swap-panes.md) |
+| Focus, zoom or close a pane | [activate-pane](activate-pane.md), [zoom-pane](zoom-pane.md), [kill-pane](kill-pane.md) |
+| Set the whole layout in one step | [set-layout](set-layout.md) |
+| Type text or keys into a pane, and read its text | [send-text](send-text.md), [send-keys](send-keys.md), [get-text](get-text.md) |
+| Follow every change of the layout, and every pane's screen | [relay --tab-of-pane](relay.md#relaying-a-tab) |
+
+All of these are requests of the multiplexer protocol, so they work the same
+for a multiplexer reached over SSH or TLS as for a local one. A client of the
+protocol is sent `TabLayoutChanged` with the tab's id whenever the tab's
+panes, their places or sizes, the focused pane or the zoomed pane change, and
+reads the new layout with `ListPanes`.
+
 # Available Subcommands
 

@@ -22,19 +22,24 @@
 //! the relay sends what it still holds before it exits, and a request the
 //! multiplexer refused makes it exit with an error.
 
+use crate::cli::layout::{tab_of_pane, tab_tree, TabLayout};
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
+use codec::ListPanesResponse;
 use config::UnixDomain;
 use mux::client::ClientRole;
 use mux::domain::Domain;
 use mux::pane::{Pane, PaneId};
 use mux::renderable::StableCursorPosition;
+use mux::tab::TabId;
 use mux::{Mux, MuxNotification};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::future::Future;
 use std::io::{BufRead, Read, Write};
 use std::pin::Pin;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use termwiz::cell::CellAttributes;
@@ -60,13 +65,21 @@ const POLL_INTERVAL: Duration = Duration::from_millis(500);
 const MAX_INPUT_LINE: usize = 4 * 1024 * 1024;
 
 #[derive(Debug, Parser, Clone)]
+#[command(group(clap::ArgGroup::new("what").required(true).args(["pane_id", "tab_of_pane"])))]
 pub struct RelayCommand {
     /// The pane to relay, as `wsb-wezterm cli list` shows it.
     #[arg(long = "pane-id")]
-    pane_id: PaneId,
+    pane_id: Option<PaneId>,
 
-    /// Let `resize` events size the pane. Without it the pane keeps the
-    /// size its other clients give it, and `resize` is refused.
+    /// Relay every pane of the tab that holds this pane, and the tab's
+    /// layout, following the pane when it moves to another tab. Once the
+    /// pane is gone, the relay goes on with the tab it was last in.
+    #[arg(long = "tab-of-pane")]
+    tab_of_pane: Option<PaneId>,
+
+    /// Let `resize` events size the pane, or with `--tab-of-pane` the tab.
+    /// Without it the pane or tab keeps the size its other clients give it,
+    /// and `resize` is refused.
     #[arg(long = "sized-by-input")]
     sized_by_input: bool,
 }
@@ -150,8 +163,15 @@ pub enum Out {
         palette: Palette,
     },
     Bell,
-    /// The pane is gone; the relay ends.
+    /// The pane, or with `--tab-of-pane` the tab, is gone; the relay ends.
     Exit,
+    /// With `--tab-of-pane`: the tab's layout, first and whenever it
+    /// changes.
+    Layout {
+        tab: TabLayout,
+    },
+    /// With `--tab-of-pane`: the pane left the tab.
+    Gone,
     /// An input line was refused, an event did not reach the pane, or the
     /// relay failed.
     Error {
@@ -426,20 +446,41 @@ impl<W: Write> Output<W> {
     }
 
     fn send(&mut self, out: &Out) -> anyhow::Result<()> {
+        self.send_for(None, out)
+    }
+
+    /// Writes `out`, tagged with the pane it is about when there is one.
+    fn send_for(&mut self, pane: Option<PaneId>, out: &Out) -> anyhow::Result<()> {
         let mut line = serde_json::to_vec(out)?;
+        if let Some(pane) = pane {
+            // An event is an object: the pane goes in as its last field.
+            if line.pop() != Some(b'}') {
+                bail!(
+                    "an event is not a JSON object: {}",
+                    String::from_utf8_lossy(&line)
+                );
+            }
+            line.extend_from_slice(format!(",\"pane\":{pane}}}").as_bytes());
+        }
         line.push(b'\n');
         self.writer.write_all(&line).context("writing to stdout")?;
         self.writer.flush().context("writing to stdout")
     }
 }
 
+/// What the relay hears of, the panes named by their ids in the relay's
+/// own mux.
 enum Event {
-    Output,
-    Frame,
+    Output(PaneId),
+    Frame(PaneId),
     Tick,
-    Alert(Alert),
-    Clipboard(Option<String>),
-    Removed,
+    Alert(PaneId, Alert),
+    Clipboard(PaneId, Option<String>),
+    Removed(PaneId),
+    /// A tab's layout changed in the relay's mirror of the multiplexer.
+    LayoutChanged,
+    /// The multiplexer's panes, as listed for a tab relay.
+    Listed(anyhow::Result<ListPanesResponse>),
     Input(String),
     InputFailed(String),
     InputEnded,
@@ -472,6 +513,27 @@ async fn send_requests(
     failures
 }
 
+/// The relay's own end of the queue of requests to the panes.
+struct Requests {
+    sender: smol::channel::Sender<Request>,
+}
+
+impl Requests {
+    /// Queues a request to a pane, behind those already made.
+    fn request(
+        &self,
+        what: String,
+        send: impl Future<Output = anyhow::Result<()>> + 'static,
+    ) -> anyhow::Result<()> {
+        self.sender
+            .try_send(Request {
+                what,
+                send: Box::pin(send),
+            })
+            .map_err(|_| anyhow!("the relay no longer sends requests to the pane"))
+    }
+}
+
 async fn relay<W: Write>(
     unix: UnixDomain,
     cmd: RelayCommand,
@@ -485,15 +547,6 @@ async fn relay<W: Write>(
     let as_domain: Arc<dyn Domain> = domain.clone();
     mux.add_domain(&as_domain);
     as_domain.attach(None).await?;
-    let local_id = domain
-        .remote_to_local_pane_id(cmd.pane_id)
-        .ok_or_else(|| anyhow!("the multiplexer has no pane {}", cmd.pane_id))?;
-    let pane = mux
-        .get_pane(local_id)
-        .ok_or_else(|| anyhow!("pane {} went away while attaching", cmd.pane_id))?;
-    if pane.downcast_ref::<ClientPane>().is_none() {
-        bail!("pane {} is not a multiplexer client's pane", cmd.pane_id);
-    }
 
     let (tx, rx) = smol::channel::unbounded::<Event>();
 
@@ -503,14 +556,15 @@ async fn relay<W: Write>(
         let tx = tx.clone();
         move |notification| {
             let event = match notification {
-                MuxNotification::PaneOutput(id) if id == local_id => Event::Output,
-                MuxNotification::Alert { pane_id, alert } if pane_id == local_id => {
-                    Event::Alert(alert)
-                }
+                MuxNotification::PaneOutput(id) => Event::Output(id),
+                MuxNotification::Alert { pane_id, alert } => Event::Alert(pane_id, alert),
                 MuxNotification::AssignClipboard {
                     pane_id, clipboard, ..
-                } if pane_id == local_id => Event::Clipboard(clipboard),
-                MuxNotification::PaneRemoved(id) if id == local_id => Event::Removed,
+                } => Event::Clipboard(pane_id, clipboard),
+                MuxNotification::PaneRemoved(id) => Event::Removed(id),
+                MuxNotification::TabLayoutChanged(_)
+                | MuxNotification::TabAddedToWindow { .. }
+                | MuxNotification::PaneAdded(_) => Event::LayoutChanged,
                 _ => return !tx.is_closed(),
             };
             tx.try_send(event).is_ok()
@@ -557,21 +611,80 @@ async fn relay<W: Write>(
     })
     .detach();
 
-    let (requests, queue) = smol::channel::unbounded::<Request>();
-    let sender = promise::spawn::spawn({
+    let (sender, queue) = smol::channel::unbounded::<Request>();
+    let requests = Rc::new(Requests { sender });
+    let sending = promise::spawn::spawn({
         let tx = tx.clone();
         send_requests(queue, move |message| {
             tx.try_send(Event::RequestFailed(message.to_string())).ok();
         })
     });
 
-    let mut relay = Relay::new(pane, cmd.sized_by_input, tx, requests);
+    let mut failures_reported = 0;
     let result: anyhow::Result<()> = async {
-        relay.hello(out)?;
+        let mut relay: Box<dyn Relaying<W>> = match (cmd.pane_id, cmd.tab_of_pane) {
+            (Some(pane_id), None) => {
+                let local_id = domain
+                    .remote_to_local_pane_id(pane_id)
+                    .ok_or_else(|| anyhow!("the multiplexer has no pane {}", pane_id))?;
+                let pane = mux
+                    .get_pane(local_id)
+                    .ok_or_else(|| anyhow!("pane {} went away while attaching", pane_id))?;
+                let mut relay =
+                    PaneRelay::new(pane, None, cmd.sized_by_input, tx, Rc::clone(&requests))?;
+                relay.hello(out)?;
+                Box::new(relay)
+            }
+            (None, Some(pane_id)) => {
+                let client = ClientDomain::get_client_inner_for_domain(domain.domain_id())?
+                    .client
+                    .clone();
+                let panes = client.list_panes().await?;
+                if tab_of_pane(&panes, pane_id).is_none() {
+                    bail!("the multiplexer has no pane {}", pane_id);
+                }
+                let mut relay = TabRelay {
+                    follow: pane_id,
+                    tab_id: None,
+                    layout: None,
+                    panes: BTreeMap::new(),
+                    domain: Arc::clone(&domain),
+                    client,
+                    sized_by_input: cmd.sized_by_input,
+                    tx,
+                    requests: Rc::clone(&requests),
+                    listing: false,
+                    list_again: false,
+                };
+                match relay.apply(panes, out)? {
+                    Flow::Continue => {}
+                    Flow::Stop => bail!("the tab of pane {} went away while attaching", pane_id),
+                }
+                Box::new(relay)
+            }
+            _ => bail!("relay one pane with --pane-id, or a tab with --tab-of-pane"),
+        };
         while let Ok(event) = rx.recv().await {
-            match relay.handle(event, out)? {
-                Flow::Continue => {}
-                Flow::Stop => break,
+            let flow = match event {
+                Event::Input(line) => {
+                    if let Err(err) = relay.input(&line, out) {
+                        out.send(&Out::Error {
+                            message: format!("{:#}", err),
+                        })?;
+                    }
+                    Flow::Continue
+                }
+                Event::InputFailed(message) => bail!(message),
+                Event::InputEnded => Flow::Stop,
+                Event::RequestFailed(message) => {
+                    failures_reported += 1;
+                    out.send(&Out::Error { message })?;
+                    Flow::Continue
+                }
+                event => relay.handle(event, out)?,
+            };
+            if let Flow::Stop = flow {
+                break;
             }
         }
         Ok(())
@@ -579,11 +692,10 @@ async fn relay<W: Write>(
     .await;
 
     // Whatever ended the relay, the requests it made are sent first, in
-    // order; dropping the relay closes their queue.
-    let reported = relay.failures_reported;
-    drop(relay);
-    let failures = sender.await;
-    for message in &failures[reported..] {
+    // order; dropping the last handle on the queue closes it.
+    drop(requests);
+    let failures = sending.await;
+    for message in &failures[failures_reported..] {
         out.send(&Out::Error {
             message: message.clone(),
         })?;
@@ -603,14 +715,22 @@ enum Flow {
     Stop,
 }
 
-struct Relay {
+/// A relay of one pane, or of a tab.
+trait Relaying<W: Write> {
+    /// What the relay heard of, other than input.
+    fn handle(&mut self, event: Event, out: &mut Output<W>) -> anyhow::Result<Flow>;
+    /// A line of input.
+    fn input(&mut self, line: &str, out: &mut Output<W>) -> anyhow::Result<()>;
+}
+
+/// One pane, mirrored: with `tag`, a pane of a tab relay, whose events name
+/// it.
+struct PaneRelay {
     pane: Arc<dyn Pane>,
+    tag: Option<PaneId>,
     sized_by_input: bool,
     tx: smol::channel::Sender<Event>,
-    /// The requests to the pane, which `send_requests` sends in order.
-    requests: smol::channel::Sender<Request>,
-    /// How many failed requests have been written out as errors.
-    failures_reported: usize,
+    requests: Rc<Requests>,
     screen: Screen,
     /// The stable row at the top of the view while it is scrolled back;
     /// `None` follows the bottom of the pane.
@@ -620,84 +740,72 @@ struct Relay {
     mouse_grab: bool,
 }
 
-impl Relay {
+impl PaneRelay {
     fn new(
         pane: Arc<dyn Pane>,
+        tag: Option<PaneId>,
         sized_by_input: bool,
         tx: smol::channel::Sender<Event>,
-        requests: smol::channel::Sender<Request>,
-    ) -> Self {
+        requests: Rc<Requests>,
+    ) -> anyhow::Result<Self> {
+        if pane.downcast_ref::<ClientPane>().is_none() {
+            bail!("pane {} is not a multiplexer client's pane", pane.pane_id());
+        }
         let dims = pane.get_dimensions();
-        Self {
+        Ok(Self {
             requests,
-            failures_reported: 0,
             screen: Screen::new(dims.cols, dims.viewport_rows),
             title: pane.get_title(),
             mouse_grab: pane.is_mouse_grabbed(),
             pane,
+            tag,
             sized_by_input,
             tx,
             view_top: None,
             frame_pending: false,
-        }
+        })
+    }
+
+    fn send<W: Write>(&self, out: &mut Output<W>, event: &Out) -> anyhow::Result<()> {
+        out.send_for(self.tag, event)
     }
 
     fn hello<W: Write>(&mut self, out: &mut Output<W>) -> anyhow::Result<()> {
         let (cols, rows) = self.screen.size();
-        out.send(&Out::Hello {
-            cols,
-            rows,
-            palette: Palette::from(&self.pane.palette()),
-            title: self.title.clone(),
-            mouse_grab: self.mouse_grab,
-            sized_by_input: self.sized_by_input,
-        })?;
+        self.send(
+            out,
+            &Out::Hello {
+                cols,
+                rows,
+                palette: Palette::from(&self.pane.palette()),
+                title: self.title.clone(),
+                mouse_grab: self.mouse_grab,
+                sized_by_input: self.sized_by_input,
+            },
+        )?;
         self.frame(out)
     }
 
-    fn handle<W: Write>(&mut self, event: Event, out: &mut Output<W>) -> anyhow::Result<Flow> {
-        match event {
-            Event::Output => self.schedule_frame(),
-            Event::Frame => {
-                self.frame_pending = false;
-                self.frame(out)?;
-            }
-            Event::Tick => {
-                // Polls the pane, as a GUI does when it paints.
-                let dims = self.pane.get_dimensions();
-                let top = dims.physical_top;
-                self.pane
-                    .get_changed_since(top..top + dims.viewport_rows as StableRowIndex, 0);
-                if self.pane.is_dead() {
-                    out.send(&Out::Exit)?;
-                    return Ok(Flow::Stop);
-                }
-            }
-            Event::Alert(Alert::Bell) => out.send(&Out::Bell)?,
-            Event::Alert(Alert::PaletteChanged) => out.send(&Out::Palette {
-                palette: Palette::from(&self.pane.palette()),
-            })?,
-            Event::Alert(_) => {}
-            Event::Clipboard(text) => out.send(&Out::Clipboard { text })?,
-            Event::Removed => {
-                out.send(&Out::Exit)?;
-                return Ok(Flow::Stop);
-            }
-            Event::Input(line) => {
-                if let Err(err) = self.input(&line, out) {
-                    out.send(&Out::Error {
-                        message: format!("{:#}", err),
-                    })?;
-                }
-            }
-            Event::InputFailed(message) => bail!(message),
-            Event::InputEnded => return Ok(Flow::Stop),
-            Event::RequestFailed(message) => {
-                self.failures_reported += 1;
-                out.send(&Out::Error { message })?;
-            }
+    /// Polls the pane, as a GUI does when it paints; true once it is dead.
+    fn poll(&self) -> bool {
+        let dims = self.pane.get_dimensions();
+        let top = dims.physical_top;
+        self.pane
+            .get_changed_since(top..top + dims.viewport_rows as StableRowIndex, 0);
+        self.pane.is_dead()
+    }
+
+    fn alert<W: Write>(&self, alert: Alert, out: &mut Output<W>) -> anyhow::Result<()> {
+        match alert {
+            Alert::Bell => self.send(out, &Out::Bell),
+            Alert::PaletteChanged => self.send(
+                out,
+                &Out::Palette {
+                    palette: Palette::from(&self.pane.palette()),
+                },
+            ),
+            _ => Ok(()),
         }
-        Ok(Flow::Continue)
     }
 
     fn schedule_frame(&mut self) {
@@ -706,44 +814,35 @@ impl Relay {
         }
         self.frame_pending = true;
         let tx = self.tx.clone();
+        let pane_id = self.pane.pane_id();
         promise::spawn::spawn(async move {
             smol::Timer::after(FRAME_DELAY).await;
-            tx.send(Event::Frame).await.ok();
+            tx.send(Event::Frame(pane_id)).await.ok();
         })
         .detach();
     }
 
+    fn scheduled_frame<W: Write>(&mut self, out: &mut Output<W>) -> anyhow::Result<()> {
+        self.frame_pending = false;
+        self.frame(out)
+    }
+
     /// The pane, as the multiplexer client's pane it was checked to be when
-    /// the relay started.
+    /// the relay took it.
     fn client_pane(&self) -> &ClientPane {
         self.pane
             .downcast_ref::<ClientPane>()
-            .expect("the relay checked its pane is a client's when it started")
+            .expect("the relay checked its pane is a client's when it took it")
     }
 
-    /// Queues a request to the pane, behind those already made.
-    fn request(
-        &self,
-        what: String,
-        send: impl Future<Output = anyhow::Result<()>> + 'static,
-    ) -> anyhow::Result<()> {
-        self.requests
-            .try_send(Request {
-                what,
-                send: Box::pin(send),
-            })
-            .map_err(|_| anyhow!("the relay no longer sends requests to the pane"))
-    }
-
-    fn input<W: Write>(&mut self, line: &str, out: &mut Output<W>) -> anyhow::Result<()> {
-        let input: In = serde_json::from_str(line).context("an input line is not a relay event")?;
+    fn input<W: Write>(&mut self, input: In, out: &mut Output<W>) -> anyhow::Result<()> {
         let swap = config::configuration().swap_backspace_and_delete;
         match input {
             In::Key { key: name, mods } => {
                 let (key, mods) = key_input(&name, &mods, swap)?;
                 self.follow_bottom(out)?;
                 let send = self.client_pane().key_down_request(key, mods);
-                self.request(format!("the key {name:?}"), send)?;
+                self.requests.request(format!("the key {name:?}"), send)?;
             }
             In::Text { text } => {
                 // Every character is checked before any is sent.
@@ -754,13 +853,13 @@ impl Relay {
                 self.follow_bottom(out)?;
                 for (c, (key, mods)) in text.chars().zip(keys) {
                     let send = self.client_pane().key_down_request(key, mods);
-                    self.request(format!("the typed {c:?}"), send)?;
+                    self.requests.request(format!("the typed {c:?}"), send)?;
                 }
             }
             In::Paste { text } => {
                 self.follow_bottom(out)?;
                 let send = self.client_pane().paste_request(&text);
-                self.request(
+                self.requests.request(
                     format!("a paste of {} characters", text.chars().count()),
                     send,
                 )?;
@@ -779,7 +878,8 @@ impl Relay {
                 let event = mouse_event(kind, x, y, button, &mods)?;
                 self.follow_bottom(out)?;
                 let send = self.client_pane().mouse_event_request(event);
-                self.request(format!("a mouse {kind:?} at ({x}, {y})"), send)?;
+                self.requests
+                    .request(format!("a mouse {kind:?} at ({x}, {y})"), send)?;
             }
             In::Scroll { rows } => {
                 let dims = self.pane.get_dimensions();
@@ -791,6 +891,12 @@ impl Relay {
             }
             In::Bottom => self.follow_bottom(out)?,
             In::Resize { cols, rows } => {
+                if self.tag.is_some() {
+                    bail!(
+                        "a pane of a tab relay is sized by the tab's layout; \
+                         resize the tab, with no \"pane\""
+                    );
+                }
                 if !self.sized_by_input {
                     bail!("this relay does not size its pane; start it with --sized-by-input");
                 }
@@ -805,7 +911,8 @@ impl Relay {
                     pixel_height: 0,
                     dpi: dims.dpi,
                 })?;
-                self.request(format!("a resize to {cols}x{rows}"), send)?;
+                self.requests
+                    .request(format!("a resize to {cols}x{rows}"), send)?;
             }
             In::Repaint => {
                 self.screen.invalidate();
@@ -827,7 +934,7 @@ impl Relay {
         let (cols, rows) = (dims.cols, dims.viewport_rows);
         if (cols, rows) != self.screen.size() {
             self.screen = Screen::new(cols, rows);
-            out.send(&Out::Size { cols, rows })?;
+            self.send(out, &Out::Size { cols, rows })?;
         }
         let top = match self.view_top {
             Some(top) if top >= dims.scrollback_top && top < dims.physical_top => top,
@@ -850,19 +957,257 @@ impl Relay {
         };
         let data = self.screen.update(lines, cursor)?;
         if !data.is_empty() {
-            out.send(&Out::Screen { data })?;
+            self.send(out, &Out::Screen { data })?;
         }
         let title = self.pane.get_title();
         if title != self.title {
             self.title = title.clone();
-            out.send(&Out::Title { text: title })?;
+            self.send(out, &Out::Title { text: title })?;
         }
         let grab = self.pane.is_mouse_grabbed();
         if grab != self.mouse_grab {
             self.mouse_grab = grab;
-            out.send(&Out::MouseGrab { on: grab })?;
+            self.send(out, &Out::MouseGrab { on: grab })?;
         }
         Ok(())
+    }
+}
+
+impl<W: Write> Relaying<W> for PaneRelay {
+    fn handle(&mut self, event: Event, out: &mut Output<W>) -> anyhow::Result<Flow> {
+        let mine = self.pane.pane_id();
+        match event {
+            Event::Output(id) if id == mine => self.schedule_frame(),
+            Event::Frame(id) if id == mine => self.scheduled_frame(out)?,
+            Event::Tick => {
+                if self.poll() {
+                    out.send(&Out::Exit)?;
+                    return Ok(Flow::Stop);
+                }
+            }
+            Event::Alert(id, alert) if id == mine => self.alert(alert, out)?,
+            Event::Clipboard(id, text) if id == mine => out.send(&Out::Clipboard { text })?,
+            Event::Removed(id) if id == mine => {
+                out.send(&Out::Exit)?;
+                return Ok(Flow::Stop);
+            }
+            _ => {}
+        }
+        Ok(Flow::Continue)
+    }
+
+    fn input(&mut self, line: &str, out: &mut Output<W>) -> anyhow::Result<()> {
+        let input: In = serde_json::from_str(line).context("an input line is not a relay event")?;
+        PaneRelay::input(self, input, out)
+    }
+}
+
+/// Every pane of a tab, and its layout, following one pane from tab to tab.
+struct TabRelay {
+    /// The pane whose tab is relayed, by its multiplexer id.
+    follow: PaneId,
+    /// The tab relayed, by its multiplexer id.
+    tab_id: Option<TabId>,
+    /// The layout as last sent.
+    layout: Option<TabLayout>,
+    /// The tab's panes, by their multiplexer ids.
+    panes: BTreeMap<PaneId, PaneRelay>,
+    domain: Arc<ClientDomain>,
+    client: Client,
+    sized_by_input: bool,
+    tx: smol::channel::Sender<Event>,
+    requests: Rc<Requests>,
+    /// A listing of the multiplexer's panes is on its way.
+    listing: bool,
+    /// The layout changed again while it was: list once more.
+    list_again: bool,
+}
+
+impl TabRelay {
+    /// Lists the multiplexer's panes, to learn the tab's layout: one listing
+    /// at a time, and one more after it for what changed meanwhile.
+    fn list(&mut self) {
+        if self.listing {
+            self.list_again = true;
+            return;
+        }
+        self.listing = true;
+        let client = self.client.clone();
+        let tx = self.tx.clone();
+        promise::spawn::spawn(async move {
+            tx.send(Event::Listed(client.list_panes().await)).await.ok();
+        })
+        .detach();
+    }
+
+    fn by_local_id(&mut self, local_id: PaneId) -> Option<&mut PaneRelay> {
+        self.panes
+            .values_mut()
+            .find(|relay| relay.pane.pane_id() == local_id)
+    }
+
+    /// Takes in a listing of the multiplexer's panes: sends `gone` for each
+    /// pane that left the tab, the tab's layout if it changed, and `hello`
+    /// for each pane that came. Stops once the tab is gone.
+    fn apply<W: Write>(
+        &mut self,
+        panes: ListPanesResponse,
+        out: &mut Output<W>,
+    ) -> anyhow::Result<Flow> {
+        let tab_id = tab_of_pane(&panes, self.follow).or(self.tab_id);
+        let layout = tab_id
+            .and_then(|tab_id| tab_tree(&panes, tab_id))
+            .and_then(TabLayout::from_tree);
+        let Some(layout) = layout else {
+            for (pane_id, _) in std::mem::take(&mut self.panes) {
+                out.send_for(Some(pane_id), &Out::Gone)?;
+            }
+            out.send(&Out::Exit)?;
+            return Ok(Flow::Stop);
+        };
+        self.tab_id = Some(layout.tab_id);
+        let ids = layout.pane_ids();
+        let left: Vec<PaneId> = self
+            .panes
+            .keys()
+            .filter(|id| !ids.contains(id))
+            .copied()
+            .collect();
+        for pane_id in left {
+            self.panes.remove(&pane_id);
+            out.send_for(Some(pane_id), &Out::Gone)?;
+        }
+        if self.layout.as_ref() != Some(&layout) {
+            out.send(&Out::Layout {
+                tab: layout.clone(),
+            })?;
+            self.layout = Some(layout);
+        }
+        let mux = Mux::get();
+        for pane_id in ids {
+            if self.panes.contains_key(&pane_id) {
+                continue;
+            }
+            // A pane the relay's mirror does not have yet comes with the
+            // mirror's next update, which lists the panes again.
+            let Some(pane) = self
+                .domain
+                .remote_to_local_pane_id(pane_id)
+                .and_then(|local_id| mux.get_pane(local_id))
+            else {
+                continue;
+            };
+            let mut relay = PaneRelay::new(
+                pane,
+                Some(pane_id),
+                false,
+                self.tx.clone(),
+                Rc::clone(&self.requests),
+            )?;
+            relay.hello(out)?;
+            self.panes.insert(pane_id, relay);
+        }
+        Ok(Flow::Continue)
+    }
+
+    /// Sizes the whole tab, as a GUI window of that size would.
+    fn resize(&self, cols: usize, rows: usize) -> anyhow::Result<()> {
+        if !self.sized_by_input {
+            bail!("this relay does not size its tab; start it with --sized-by-input");
+        }
+        if cols == 0 || rows == 0 {
+            bail!("a tab cannot be {cols}x{rows}");
+        }
+        let tab_id = self.tab_id.expect("a tab relay has its tab once it starts");
+        let tab = self
+            .domain
+            .remote_to_local_tab_id(tab_id)
+            .and_then(|local_id| Mux::get().get_tab(local_id))
+            .ok_or_else(|| anyhow!("the relay's mirror has no tab {tab_id} yet"))?;
+        let size = tab.get_size();
+        tab.resize(TerminalSize {
+            cols,
+            rows,
+            pixel_width: 0,
+            pixel_height: 0,
+            dpi: size.dpi,
+        });
+        Ok(())
+    }
+}
+
+impl<W: Write> Relaying<W> for TabRelay {
+    fn handle(&mut self, event: Event, out: &mut Output<W>) -> anyhow::Result<Flow> {
+        match event {
+            Event::Output(id) => {
+                if let Some(relay) = self.by_local_id(id) {
+                    relay.schedule_frame();
+                }
+            }
+            Event::Frame(id) => {
+                if let Some(relay) = self.by_local_id(id) {
+                    relay.scheduled_frame(out)?;
+                }
+            }
+            Event::Tick => {
+                for relay in self.panes.values() {
+                    relay.poll();
+                }
+                let known = self.layout.as_ref().map(|layout| layout.pane_ids().len());
+                if known != Some(self.panes.len()) {
+                    self.list();
+                }
+            }
+            Event::Alert(id, alert) => {
+                if let Some(relay) = self.by_local_id(id) {
+                    relay.alert(alert, out)?;
+                }
+            }
+            Event::Clipboard(id, text) => {
+                if let Some(relay) = self.by_local_id(id) {
+                    relay.send(out, &Out::Clipboard { text })?;
+                }
+            }
+            Event::Removed(_) | Event::LayoutChanged => self.list(),
+            Event::Listed(panes) => {
+                self.listing = false;
+                if let Flow::Stop = self.apply(panes?, out)? {
+                    return Ok(Flow::Stop);
+                }
+                if std::mem::take(&mut self.list_again) {
+                    self.list();
+                }
+            }
+            Event::Input(_) | Event::InputFailed(_) | Event::InputEnded => {}
+            Event::RequestFailed(_) => {}
+        }
+        Ok(Flow::Continue)
+    }
+
+    fn input(&mut self, line: &str, out: &mut Output<W>) -> anyhow::Result<()> {
+        let mut value: serde_json::Value =
+            serde_json::from_str(line).context("an input line is not a relay event")?;
+        let pane = value.as_object_mut().and_then(|event| event.remove("pane"));
+        let input: In =
+            serde_json::from_value(value).context("an input line is not a relay event")?;
+        match (pane, input) {
+            (None, In::Resize { cols, rows }) => self.resize(cols, rows),
+            (None, _) => bail!(
+                "a tab relay's events name their \"pane\"; only a resize of the whole tab \
+                 names none"
+            ),
+            (Some(pane), input) => {
+                let pane_id = pane
+                    .as_u64()
+                    .ok_or_else(|| anyhow!("\"pane\" is {pane}, not a pane id"))?
+                    as PaneId;
+                let relay = self
+                    .panes
+                    .get_mut(&pane_id)
+                    .ok_or_else(|| anyhow!("pane {pane_id} is not in the relayed tab"))?;
+                relay.input(input, out)
+            }
+        }
     }
 }
 
@@ -1141,6 +1486,18 @@ mod test {
         assert_eq!(
             String::from_utf8(out.writer).unwrap(),
             "{\"t\":\"size\",\"cols\":80,\"rows\":24}\n{\"t\":\"bell\"}\n"
+        );
+    }
+
+    #[test]
+    fn an_event_of_a_tab_relay_names_its_pane_last() {
+        let mut out = Output::new(vec![]);
+        out.send_for(Some(7), &Out::Size { cols: 80, rows: 24 })
+            .unwrap();
+        out.send_for(Some(3), &Out::Gone).unwrap();
+        assert_eq!(
+            String::from_utf8(out.writer).unwrap(),
+            "{\"t\":\"size\",\"cols\":80,\"rows\":24,\"pane\":7}\n{\"t\":\"gone\",\"pane\":3}\n"
         );
     }
 }

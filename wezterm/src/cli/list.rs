@@ -164,6 +164,9 @@ struct CliListResultItem {
     is_active: bool,
     is_zoomed: bool,
     tty_name: Option<String>,
+    /// The program in the foreground of the pane, as the path of its
+    /// executable, where the pane's domain can tell
+    foreground_process_name: Option<String>,
 }
 
 impl CliListResultItem {
@@ -188,6 +191,7 @@ impl CliListResultItem {
             is_active_pane,
             is_zoomed_pane,
             tty_name,
+            foreground_process_name,
             size:
                 TerminalSize {
                     rows,
@@ -230,6 +234,7 @@ impl CliListResultItem {
             is_active: is_active_pane,
             is_zoomed: is_zoomed_pane,
             tty_name,
+            foreground_process_name,
         }
     }
 }

@@ -10,6 +10,7 @@ use rangeset::intersects_range;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::convert::TryInto;
+use std::ops::RangeInclusive;
 use std::sync::Arc;
 use url::Url;
 use wezterm_term::{StableRowIndex, TerminalSize};
@@ -282,6 +283,7 @@ fn pane_tree(
                 left_col,
                 top_row,
                 tty_name: pane.tty_name(),
+                foreground_process_name: pane.get_foreground_process_name(CachePolicy::AllowStale),
             })
         }
     }
@@ -320,7 +322,7 @@ where
 
 /// Computes the minimum (x, y) size based on the panes in this portion
 /// of the tree.
-fn compute_min_size(tree: &mut Tree) -> (usize, usize) {
+fn compute_min_size(tree: &Tree) -> (usize, usize) {
     match tree {
         Tree::Node { data: None, .. } | Tree::Empty => (1, 1),
         Tree::Node {
@@ -328,8 +330,8 @@ fn compute_min_size(tree: &mut Tree) -> (usize, usize) {
             right,
             data: Some(data),
         } => {
-            let (left_x, left_y) = compute_min_size(&mut *left);
-            let (right_x, right_y) = compute_min_size(&mut *right);
+            let (left_x, left_y) = compute_min_size(left);
+            let (right_x, right_y) = compute_min_size(right);
             match data.direction {
                 SplitDirection::Vertical => (left_x.max(right_x), left_y + right_y + 1),
                 SplitDirection::Horizontal => (left_x + right_x + 1, left_y.max(right_y)),
@@ -498,6 +500,240 @@ fn apply_sizes_from_splits(tree: &Tree, size: &TerminalSize) {
             pane.resize(*size).ok();
         }
     }
+}
+
+/// Which part of a split a subtree is: the left or top part comes first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Branch {
+    First,
+    Second,
+}
+
+/// What a split divides: a horizontal split divides columns, a vertical one
+/// rows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Axis {
+    Cols,
+    Rows,
+}
+
+impl Axis {
+    fn of(direction: SplitDirection) -> Self {
+        match direction {
+            SplitDirection::Horizontal => Self::Cols,
+            SplitDirection::Vertical => Self::Rows,
+        }
+    }
+
+    fn cells(self, size: &TerminalSize) -> usize {
+        match self {
+            Self::Cols => size.cols,
+            Self::Rows => size.rows,
+        }
+    }
+
+    /// Gives `size` `cells` along this axis, and the pixels that many cells
+    /// of size `cell` take.
+    fn set_cells(self, size: &mut TerminalSize, cells: usize, cell: &TerminalSize) {
+        match self {
+            Self::Cols => {
+                size.cols = cells;
+                size.pixel_width = cells * cell.pixel_width;
+            }
+            Self::Rows => {
+                size.rows = cells;
+                size.pixel_height = cells * cell.pixel_height;
+            }
+        }
+        size.dpi = cell.dpi;
+    }
+
+    /// The fewest cells along this axis `tree` fits in: one per pane, and
+    /// one per divider between them.
+    fn min_cells(self, tree: &Tree) -> usize {
+        let (cols, rows) = compute_min_size(tree);
+        match self {
+            Self::Cols => cols,
+            Self::Rows => rows,
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Cols => "columns",
+            Self::Rows => "rows",
+        }
+    }
+}
+
+/// The edge of a subtree that moves when it is resized: its start (left or
+/// top) or its end (right or bottom).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Edge {
+    Start,
+    End,
+}
+
+/// The path from the top of `tree` to the pane `pane_id`.
+fn path_to_pane(tree: &Tree, pane_id: PaneId) -> Option<Vec<Branch>> {
+    match tree {
+        Tree::Empty => None,
+        Tree::Leaf(pane) => (pane.pane_id() == pane_id).then(Vec::new),
+        Tree::Node { left, right, .. } => {
+            let (branch, path) = match path_to_pane(left, pane_id) {
+                Some(path) => (Branch::First, path),
+                None => (Branch::Second, path_to_pane(right, pane_id)?),
+            };
+            Some(std::iter::once(branch).chain(path).collect())
+        }
+    }
+}
+
+/// The path from the top of `tree` to its `n`th split, counted in preorder
+/// as `iter_splits` counts them; `n` is what remains of the count.
+fn path_to_split(tree: &Tree, n: &mut usize) -> Option<Vec<Branch>> {
+    let Tree::Node { left, right, .. } = tree else {
+        return None;
+    };
+    if *n == 0 {
+        return Some(vec![]);
+    }
+    *n -= 1;
+    let (branch, path) = match path_to_split(left, n) {
+        Some(path) => (Branch::First, path),
+        None => (Branch::Second, path_to_split(right, n)?),
+    };
+    Some(std::iter::once(branch).chain(path).collect())
+}
+
+fn subtree<'a>(tree: &'a Tree, path: &[Branch]) -> Option<&'a Tree> {
+    match (path.split_first(), tree) {
+        (None, _) => Some(tree),
+        (Some((Branch::First, rest)), Tree::Node { left, .. }) => subtree(left, rest),
+        (Some((Branch::Second, rest)), Tree::Node { right, .. }) => subtree(right, rest),
+        (Some(_), _) => None,
+    }
+}
+
+fn subtree_mut<'a>(tree: &'a mut Tree, path: &[Branch]) -> Option<&'a mut Tree> {
+    match (path.split_first(), tree) {
+        (None, tree) => Some(tree),
+        (Some((Branch::First, rest)), Tree::Node { left, .. }) => subtree_mut(left, rest),
+        (Some((Branch::Second, rest)), Tree::Node { right, .. }) => subtree_mut(right, rest),
+        (Some(_), _) => None,
+    }
+}
+
+/// The split at the top of `tree`, if it is one.
+fn split_at_top(tree: &Tree) -> Option<&SplitDirectionAndSize> {
+    match tree {
+        Tree::Node {
+            data: Some(data), ..
+        } => Some(data),
+        _ => None,
+    }
+}
+
+/// The nearest split above the end of `path` that divides `axis`, as the
+/// length of the path to it: the split whose divider touches what `path`
+/// leads to, on its far side when `side` is `Some(Branch::First)` (right or
+/// below), on either side when `side` is None.
+fn nearest_split(tree: &Tree, path: &[Branch], axis: Axis, side: Option<Branch>) -> Option<usize> {
+    (0..path.len()).rev().find(|&at| {
+        side.map_or(true, |side| path[at] == side)
+            && subtree(tree, &path[..at])
+                .and_then(split_at_top)
+                .map_or(false, |split| Axis::of(split.direction) == axis)
+    })
+}
+
+/// The cells of the first part of the split at the top of `tree`, and the
+/// cells it can have: at least its own minimum, and at most what leaves the
+/// second part its minimum.
+fn first_part(tree: &Tree) -> Option<(usize, RangeInclusive<usize>)> {
+    let Tree::Node {
+        left,
+        right,
+        data: Some(data),
+    } = tree
+    else {
+        return None;
+    };
+    let axis = Axis::of(data.direction);
+    let first = axis.cells(&data.first);
+    let total = first + 1 + axis.cells(&data.second);
+    let max = total.saturating_sub(1 + axis.min_cells(right));
+    Some((first, axis.min_cells(left)..=max))
+}
+
+/// Gives the first part of the split at the top of `tree` `first` cells
+/// along its axis, and the second part the rest, and resizes the panes in
+/// both; the cells come from, or go to, the panes nearest the divider
+/// first. `first` is within the range `first_part` gives.
+fn set_first_part(tree: &mut Tree, first: usize, cell: &TerminalSize) {
+    let Tree::Node {
+        left,
+        right,
+        data: Some(data),
+    } = tree
+    else {
+        return;
+    };
+    let axis = Axis::of(data.direction);
+    let old = axis.cells(&data.first);
+    let total = old + 1 + axis.cells(&data.second);
+    let delta = first as isize - old as isize;
+    resize_subtree(left, axis, delta, Edge::End, cell);
+    resize_subtree(right, axis, -delta, Edge::Start, cell);
+    axis.set_cells(&mut data.first, first, cell);
+    axis.set_cells(&mut data.second, total - 1 - first, cell);
+    let size = data.size();
+    apply_sizes_from_splits(tree, &size);
+}
+
+/// Grows (`delta` > 0) or shrinks the splits of `tree` by `delta` cells
+/// along `axis`, its `edge` moving. The panes nearest that edge take the
+/// change first: a shrinking pane gives cells down to one, and the next
+/// gives the rest. `tree` can shrink by `delta`: it is at least its minimum
+/// after. Only the split sizes change; the caller resizes the panes.
+fn resize_subtree(tree: &mut Tree, axis: Axis, delta: isize, edge: Edge, cell: &TerminalSize) {
+    if delta == 0 {
+        return;
+    }
+    let Tree::Node {
+        left,
+        right,
+        data: Some(data),
+    } = tree
+    else {
+        return;
+    };
+    if Axis::of(data.direction) != axis {
+        // Both parts span the whole of the axis.
+        for part in [&mut data.first, &mut data.second] {
+            let cells = axis.cells(part) as isize + delta;
+            axis.set_cells(part, cells as usize, cell);
+        }
+        resize_subtree(left, axis, delta, edge, cell);
+        resize_subtree(right, axis, delta, edge, cell);
+        return;
+    }
+    let (near, near_size, far, far_size) = match edge {
+        Edge::Start => (left, &mut data.first, right, &mut data.second),
+        Edge::End => (right, &mut data.second, left, &mut data.first),
+    };
+    let near_cells = axis.cells(near_size) as isize;
+    let near_delta = if delta > 0 {
+        delta
+    } else {
+        delta.max(axis.min_cells(near) as isize - near_cells)
+    };
+    let far_delta = delta - near_delta;
+    axis.set_cells(near_size, (near_cells + near_delta) as usize, cell);
+    let far_cells = axis.cells(far_size) as isize + far_delta;
+    axis.set_cells(far_size, far_cells as usize, cell);
+    resize_subtree(near, axis, near_delta, edge, cell);
+    resize_subtree(far, axis, far_delta, edge, cell);
 }
 
 fn cell_dimensions(size: &TerminalSize) -> TerminalSize {
@@ -670,16 +906,63 @@ impl Tab {
     /// iter_splits() as PositionedSplit::index, revised the split position
     /// by the provided delta; positive values move the split to the right/bottom,
     /// and negative values to the left/top.
-    /// The adjusted size is propagated downwards to contained children and
-    /// their panes are resized accordingly.
+    /// The split stops where the panes on either side are one cell. The
+    /// cells come from, or go to, the panes nearest the divider first, and
+    /// the panes are resized accordingly.
     pub fn resize_split_by(&self, split_index: usize, delta: isize) {
         self.inner.lock().resize_split_by(split_index, delta)
     }
 
-    /// Adjusts the size of the active pane in the specified direction
-    /// by the specified amount.
-    pub fn adjust_pane_size(&self, direction: PaneDirection, amount: usize) {
-        self.inner.lock().adjust_pane_size(direction, amount)
+    /// Moves the divider of the nearest split around `pane_id` that divides
+    /// along `direction` by `amount` cells that way, as `resize_split_by`
+    /// does. A pane with no such split, or not in this tab, is left as it is.
+    pub fn adjust_pane_size(&self, pane_id: PaneId, direction: PaneDirection, amount: usize) {
+        self.inner
+            .lock()
+            .adjust_pane_size(pane_id, direction, amount)
+    }
+
+    /// Gives the first part of the split whose divider is to the right of
+    /// (`Horizontal`) or below (`Vertical`) the pane `pane_id` `first` cells,
+    /// and the second part the rest: the nearest split around the pane of
+    /// that direction whose first part holds it. The cells come from, or go
+    /// to, the panes nearest the divider first. Fails, changing nothing, when
+    /// there is no such divider, when `first` would leave a pane less than a
+    /// cell, or while a pane is zoomed.
+    pub fn resize_split(
+        &self,
+        pane_id: PaneId,
+        direction: SplitDirection,
+        first: usize,
+    ) -> anyhow::Result<()> {
+        self.inner.lock().resize_split(pane_id, direction, first)
+    }
+
+    /// Swaps two panes of this tab, each taking the other's place and size;
+    /// the focus stays with the pane that had it. A zoomed pane is unzoomed
+    /// first.
+    pub fn swap_panes(&self, a: PaneId, b: PaneId) -> anyhow::Result<()> {
+        self.inner.lock().swap_panes(a, b)
+    }
+
+    /// Puts `pane` in the place of the pane `pane_id`, at its size, and
+    /// returns the pane it replaced. The place keeps the focus if it had it;
+    /// a zoomed pane is unzoomed first.
+    pub fn replace_pane(
+        &self,
+        pane_id: PaneId,
+        pane: Arc<dyn Pane>,
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        self.inner.lock().replace_pane(pane_id, pane)
+    }
+
+    /// Replaces the tab's tree with `tree`, whose splits are sized to the
+    /// tab's size (`get_size`), and resizes its panes to them. `active`
+    /// gets the focus; without it the pane that had it keeps it while it is
+    /// still in the tab, else the first pane gets it. `zoomed` is zoomed and
+    /// focused.
+    pub fn set_tree(&self, tree: Tree, active: Option<PaneId>, zoomed: Option<PaneId>) {
+        self.inner.lock().set_tree(tree, active, zoomed)
     }
 
     /// Activate an adjacent pane in the specified direction.
@@ -779,9 +1062,10 @@ impl Tab {
         request: SplitRequest,
         pane: Arc<dyn Pane>,
     ) -> anyhow::Result<usize> {
-        self.inner
-            .lock()
-            .split_and_insert(pane_index, request, pane)
+        let mut inner = self.inner.lock();
+        let index = inner.split_and_insert(pane_index, request, pane)?;
+        inner.layout_changed();
+        Ok(index)
     }
 
     pub fn get_zoomed_pane(&self) -> Option<Arc<dyn Pane>> {
@@ -849,7 +1133,7 @@ impl TabInner {
         // would be sent back to it, and the panes would bounce between sizes,
         // ending at a stale one.
         self.size = size;
-        Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));
+        self.layout_changed();
 
         log::debug!(
             "sync tab: {:#?} zoomed: {} {:#?}",
@@ -950,7 +1234,7 @@ impl TabInner {
                 self.zoomed.replace(pane);
             }
         }
-        Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));
+        self.layout_changed();
     }
 
     fn contains_pane(&self, pane: PaneId) -> bool {
@@ -1039,7 +1323,7 @@ impl TabInner {
                 }
             }
         }
-        Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));
+        self.layout_changed();
     }
 
     fn iter_panes_impl(&mut self, respect_zoom_state: bool) -> Vec<PositionedPane> {
@@ -1221,7 +1505,7 @@ impl TabInner {
             apply_sizes_from_splits(self.pane.as_mut().unwrap(), &size);
         }
 
-        Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));
+        self.layout_changed();
     }
 
     fn apply_pane_size(&mut self, pane_size: TerminalSize, cursor: &mut Cursor) {
@@ -1297,185 +1581,204 @@ impl TabInner {
                 self.size = size;
             }
         }
-        Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));
+        self.layout_changed();
+    }
+
+    /// Tells the mux's subscribers the tab's layout changed.
+    fn layout_changed(&self) {
+        if let Some(mux) = Mux::try_get() {
+            mux.notify(MuxNotification::TabLayoutChanged(self.id));
+        }
+    }
+
+    /// Moves the divider of the split at `path` by `delta` cells, as far as
+    /// the panes on either side of it let it go.
+    fn move_divider(&mut self, path: &[Branch], delta: isize) {
+        let cell = self.cell_dimensions();
+        let Some(split) = self.pane.as_mut().and_then(|root| subtree_mut(root, path)) else {
+            return;
+        };
+        let Some((first, range)) = first_part(split) else {
+            return;
+        };
+        let moved = (first as isize)
+            .saturating_add(delta)
+            .clamp(*range.start() as isize, *range.end() as isize) as usize;
+        if moved != first {
+            set_first_part(split, moved, &cell);
+            self.layout_changed();
+        }
     }
 
     fn resize_split_by(&mut self, split_index: usize, delta: isize) {
         if self.zoomed.is_some() {
             return;
         }
-
-        let mut cursor = self.pane.take().unwrap().cursor();
-        let mut index = 0;
-
-        // Position cursor on the specified split
-        loop {
-            if !cursor.is_leaf() {
-                if index == split_index {
-                    // Found it
-                    break;
-                }
-                index += 1;
-            }
-            match cursor.preorder_next() {
-                Ok(c) => cursor = c,
-                Err(c) => {
-                    // Didn't find it
-                    self.pane.replace(c.tree());
-                    return;
-                }
-            }
-        }
-
-        // Now cursor is looking at the split
-        self.adjust_node_at_cursor(&mut cursor, delta);
-        self.cascade_size_from_cursor(cursor);
-        Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));
+        let Some(path) = self
+            .pane
+            .as_ref()
+            .and_then(|root| path_to_split(root, &mut split_index.clone()))
+        else {
+            return;
+        };
+        self.move_divider(&path, delta);
     }
 
-    fn adjust_node_at_cursor(&mut self, cursor: &mut Cursor, delta: isize) {
-        let cell_dimensions = self.cell_dimensions();
-        if let Ok(Some(node)) = cursor.node_mut() {
-            match node.direction {
-                SplitDirection::Horizontal => {
-                    let width = node.width();
-
-                    let mut cols = node.first.cols as isize;
-                    cols = cols
-                        .saturating_add(delta)
-                        .max(1)
-                        .min((width as isize).saturating_sub(2));
-                    node.first.cols = cols as usize;
-                    node.first.pixel_width =
-                        node.first.cols.saturating_mul(cell_dimensions.pixel_width);
-
-                    node.second.cols = width.saturating_sub(node.first.cols.saturating_add(1));
-                    node.second.pixel_width =
-                        node.second.cols.saturating_mul(cell_dimensions.pixel_width);
-                }
-                SplitDirection::Vertical => {
-                    let height = node.height();
-
-                    let mut rows = node.first.rows as isize;
-                    rows = rows
-                        .saturating_add(delta)
-                        .max(1)
-                        .min((height as isize).saturating_sub(2));
-                    node.first.rows = rows as usize;
-                    node.first.pixel_height =
-                        node.first.rows.saturating_mul(cell_dimensions.pixel_height);
-
-                    node.second.rows = height.saturating_sub(node.first.rows.saturating_add(1));
-                    node.second.pixel_height = node
-                        .second
-                        .rows
-                        .saturating_mul(cell_dimensions.pixel_height);
-                }
-            }
-        }
-    }
-
-    fn cascade_size_from_cursor(&mut self, mut cursor: Cursor) {
-        // Now we need to cascade this down to children
-        match cursor.preorder_next() {
-            Ok(c) => cursor = c,
-            Err(c) => {
-                self.pane.replace(c.tree());
-                return;
-            }
-        }
-        let root_size = self.size;
-
-        loop {
-            // Figure out the available size by looking at our immediate parent node.
-            // If we are the root, look at the provided new size
-            let pane_size = if let Some((branch, Some(parent))) = cursor.path_to_root().next() {
-                if branch == PathBranch::IsRight {
-                    parent.second
-                } else {
-                    parent.first
-                }
-            } else {
-                root_size
-            };
-
-            if cursor.is_leaf() {
-                // Apply our size to the tty
-                cursor.leaf_mut().map(|pane| pane.resize(pane_size));
-            } else {
-                self.apply_pane_size(pane_size, &mut cursor);
-            }
-            match cursor.preorder_next() {
-                Ok(c) => cursor = c,
-                Err(c) => {
-                    self.pane.replace(c.tree());
-                    break;
-                }
-            }
-        }
-        Mux::try_get().map(|mux| mux.notify(MuxNotification::TabResized(self.id)));
-    }
-
-    fn adjust_pane_size(&mut self, direction: PaneDirection, amount: usize) {
+    fn adjust_pane_size(&mut self, pane_id: PaneId, direction: PaneDirection, amount: usize) {
         if self.zoomed.is_some() {
             return;
         }
-        let active_index = self.active;
-        let mut cursor = self.pane.take().unwrap().cursor();
-        let mut index = 0;
-
-        // Position cursor on the active leaf
-        loop {
-            if cursor.is_leaf() {
-                if index == active_index {
-                    // Found it
-                    break;
-                }
-                index += 1;
-            }
-            match cursor.preorder_next() {
-                Ok(c) => cursor = c,
-                Err(c) => {
-                    // Didn't find it
-                    self.pane.replace(c.tree());
-                    return;
-                }
-            }
-        }
-
-        // We are on the active leaf.
-        // Now we go up until we find the parent node that is
-        // aligned with the desired direction.
-        let split_direction = match direction {
-            PaneDirection::Left | PaneDirection::Right => SplitDirection::Horizontal,
-            PaneDirection::Up | PaneDirection::Down => SplitDirection::Vertical,
-            PaneDirection::Next | PaneDirection::Prev => unreachable!(),
+        let (axis, delta) = match direction {
+            PaneDirection::Left => (Axis::Cols, -(amount as isize)),
+            PaneDirection::Right => (Axis::Cols, amount as isize),
+            PaneDirection::Up => (Axis::Rows, -(amount as isize)),
+            PaneDirection::Down => (Axis::Rows, amount as isize),
+            PaneDirection::Next | PaneDirection::Prev => return,
         };
-        let delta = match direction {
-            PaneDirection::Down | PaneDirection::Right => amount as isize,
-            PaneDirection::Up | PaneDirection::Left => -(amount as isize),
-            PaneDirection::Next | PaneDirection::Prev => unreachable!(),
+        let Some(root) = self.pane.as_ref() else {
+            return;
         };
-        loop {
-            match cursor.go_up() {
-                Ok(mut c) => {
-                    if let Ok(Some(node)) = c.node_mut() {
-                        if node.direction == split_direction {
-                            self.adjust_node_at_cursor(&mut c, delta);
-                            self.cascade_size_from_cursor(c);
-                            return;
-                        }
-                    }
-
-                    cursor = c;
-                }
-
-                Err(c) => {
-                    self.pane.replace(c.tree());
-                    return;
-                }
-            }
+        let Some(path) = path_to_pane(root, pane_id) else {
+            return;
+        };
+        if let Some(at) = nearest_split(root, &path, axis, None) {
+            self.move_divider(&path[..at], delta);
         }
+    }
+
+    fn resize_split(
+        &mut self,
+        pane_id: PaneId,
+        direction: SplitDirection,
+        first: usize,
+    ) -> anyhow::Result<()> {
+        if let Some(zoomed) = &self.zoomed {
+            anyhow::bail!(
+                "pane {} of tab {} is zoomed; unzoom it before resizing a split",
+                zoomed.pane_id(),
+                self.id
+            );
+        }
+        let axis = Axis::of(direction);
+        let side = match direction {
+            SplitDirection::Horizontal => "to the right of",
+            SplitDirection::Vertical => "below",
+        };
+        let cell = self.cell_dimensions();
+        let tab_id = self.id;
+        let root = self.pane.as_mut().expect("a tab has its tree");
+        let path = path_to_pane(root, pane_id)
+            .ok_or_else(|| anyhow::anyhow!("pane {pane_id} is not in tab {tab_id}"))?;
+        let at = nearest_split(root, &path, axis, Some(Branch::First))
+            .ok_or_else(|| anyhow::anyhow!("there is no divider {side} pane {pane_id}"))?;
+        let split = subtree_mut(root, &path[..at]).expect("the path leads to the split");
+        let (_, range) = first_part(split).expect("the path leads to a split");
+        if !range.contains(&first) {
+            anyhow::bail!(
+                "the split with the divider {side} pane {pane_id} can give its first part \
+                 {} to {} {}, not {first}",
+                range.start(),
+                range.end(),
+                axis.name()
+            );
+        }
+        set_first_part(split, first, &cell);
+        self.layout_changed();
+        Ok(())
+    }
+
+    /// The index of the pane `pane_id`, counting the panes in the order
+    /// `iter_panes` gives them.
+    fn pane_index(&mut self, pane_id: PaneId) -> Option<usize> {
+        self.iter_panes_ignoring_zoom()
+            .iter()
+            .find(|p| p.pane.pane_id() == pane_id)
+            .map(|p| p.index)
+    }
+
+    /// Swaps two panes of this tab, each taking the other's place and size.
+    /// The focus stays with the pane that had it.
+    fn swap_panes(&mut self, a: PaneId, b: PaneId) -> anyhow::Result<()> {
+        if a == b {
+            anyhow::bail!("pane {a} cannot be swapped with itself");
+        }
+        let root = self.pane.as_ref().expect("a tab has its tree");
+        let path_a = path_to_pane(root, a)
+            .ok_or_else(|| anyhow::anyhow!("pane {a} is not in tab {}", self.id))?;
+        let path_b = path_to_pane(root, b)
+            .ok_or_else(|| anyhow::anyhow!("pane {b} is not in tab {}", self.id))?;
+        self.set_zoomed(false);
+        let active = self.get_active_pane().map(|pane| pane.pane_id());
+        let size = self.size;
+        let root = self.pane.as_mut().expect("a tab has its tree");
+        let pane_a = match subtree_mut(root, &path_a) {
+            Some(Tree::Leaf(pane)) => Arc::clone(pane),
+            _ => unreachable!("the path leads to pane {}", a),
+        };
+        let pane_b = match subtree_mut(root, &path_b) {
+            Some(Tree::Leaf(pane)) => std::mem::replace(pane, pane_a),
+            _ => unreachable!("the path leads to pane {}", b),
+        };
+        if let Some(Tree::Leaf(pane)) = subtree_mut(root, &path_a) {
+            *pane = pane_b;
+        }
+        apply_sizes_from_splits(root, &size);
+        if let Some(index) = active.and_then(|id| self.pane_index(id)) {
+            self.active = index;
+            self.recency.tag(index);
+        }
+        self.layout_changed();
+        Ok(())
+    }
+
+    /// Puts `pane` in the place of the pane `pane_id`, at its size, and
+    /// returns that pane. The place keeps the focus if it had it.
+    fn replace_pane(
+        &mut self,
+        pane_id: PaneId,
+        pane: Arc<dyn Pane>,
+    ) -> anyhow::Result<Arc<dyn Pane>> {
+        let path = self
+            .pane
+            .as_ref()
+            .and_then(|root| path_to_pane(root, pane_id))
+            .ok_or_else(|| anyhow::anyhow!("pane {pane_id} is not in tab {}", self.id))?;
+        self.set_zoomed(false);
+        let prior = self.get_active_pane();
+        let size = self.size;
+        let root = self.pane.as_mut().expect("a tab has its tree");
+        let replaced = match subtree_mut(root, &path) {
+            Some(Tree::Leaf(leaf)) => std::mem::replace(leaf, pane),
+            _ => unreachable!("the path leads to pane {}", pane_id),
+        };
+        apply_sizes_from_splits(root, &size);
+        self.advise_focus_change(prior);
+        self.layout_changed();
+        Ok(replaced)
+    }
+
+    /// Replaces the tree with `tree`, whose splits are sized for this tab,
+    /// and resizes its panes to them. `active` gets the focus; without it the
+    /// pane that had it keeps it if it is still in the tab, else the first
+    /// pane gets it. `zoomed` is zoomed, and focused.
+    fn set_tree(&mut self, tree: Tree, active: Option<PaneId>, zoomed: Option<PaneId>) {
+        let prior = self.get_active_pane();
+        if let Some(pane) = self.zoomed.take() {
+            pane.set_zoomed(false);
+        }
+        let size = self.size;
+        apply_sizes_from_splits(&tree, &size);
+        self.pane = Some(tree);
+        let focus = zoomed
+            .or(active)
+            .or_else(|| prior.as_ref().map(|pane| pane.pane_id()));
+        self.active = focus.and_then(|id| self.pane_index(id)).unwrap_or(0);
+        self.recency.tag(self.active);
+        self.advise_focus_change(prior);
+        if zoomed.is_some() {
+            self.toggle_zoom();
+        }
+        self.layout_changed();
     }
 
     fn activate_pane_direction(&mut self, direction: PaneDirection) {
@@ -1738,6 +2041,10 @@ impl TabInner {
             self.active = active_idx.saturating_sub(removed_indices.len());
         }
 
+        if !dead_panes.is_empty() {
+            self.layout_changed();
+        }
+
         if !dead_panes.is_empty() && kill {
             let to_kill: Vec<_> = dead_panes.iter().map(|p| p.pane_id()).collect();
             promise::spawn::spawn_into_main_thread(async move {
@@ -1815,25 +2122,30 @@ impl TabInner {
     }
 
     fn advise_focus_change(&mut self, prior: Option<Arc<dyn Pane>>) {
-        let mux = Mux::get();
         let current = self.get_active_pane();
-        match (prior, current) {
+        let focused = match (prior, current) {
             (Some(prior), Some(current)) if prior.pane_id() != current.pane_id() => {
                 prior.focus_changed(false);
                 current.focus_changed(true);
-                mux.notify(MuxNotification::PaneFocused(current.pane_id()));
+                Some(current.pane_id())
             }
             (None, Some(current)) => {
                 current.focus_changed(true);
-                mux.notify(MuxNotification::PaneFocused(current.pane_id()));
+                Some(current.pane_id())
             }
             (Some(prior), None) => {
                 prior.focus_changed(false);
+                None
             }
             (Some(_), Some(_)) | (None, None) => {
                 // no change
+                return;
             }
+        };
+        if let (Some(mux), Some(pane_id)) = (Mux::try_get(), focused) {
+            mux.notify(MuxNotification::PaneFocused(pane_id));
         }
+        self.layout_changed();
     }
 
     fn set_active_idx(&mut self, pane_index: usize) {
@@ -1848,6 +2160,7 @@ impl TabInner {
             Ok(c) => self.pane = Some(c.tree()),
             Err(_) => panic!("tried to assign root pane to non-empty tree"),
         }
+        self.layout_changed();
     }
 
     fn cell_dimensions(&self) -> TerminalSize {
@@ -1905,6 +2218,7 @@ impl TabInner {
         } else {
             self.advise_focus_change(Some(pane));
         }
+        self.layout_changed();
         None
     }
 
@@ -2203,6 +2517,9 @@ pub struct PaneEntry {
     pub top_row: usize,
     pub left_col: usize,
     pub tty_name: Option<String>,
+    /// The program in the foreground of the pane's terminal, as the path of
+    /// its executable, where the pane's domain can tell.
+    pub foreground_process_name: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Serialize, PartialEq, Debug)]
@@ -2309,7 +2626,18 @@ mod test {
         }
 
         fn get_dimensions(&self) -> RenderableDimensions {
-            unimplemented!();
+            let size = *self.size.lock();
+            RenderableDimensions {
+                cols: size.cols,
+                viewport_rows: size.rows,
+                scrollback_rows: size.rows,
+                physical_top: 0,
+                scrollback_top: 0,
+                dpi: size.dpi,
+                pixel_width: size.pixel_width,
+                pixel_height: size.pixel_height,
+                reverse_video: false,
+            }
         }
 
         fn get_title(&self) -> String {
@@ -2557,6 +2885,148 @@ mod test {
         assert_eq!(24, panes[2].height);
         assert_eq!(400, panes[2].pixel_width);
         assert_eq!(600, panes[2].pixel_height);
+    }
+
+    /// Splits the pane at `index` along `direction`, the new pane `id`
+    /// taking the second half.
+    fn split(tab: &Tab, index: usize, direction: SplitDirection, id: PaneId) {
+        let request = SplitRequest {
+            direction,
+            ..Default::default()
+        };
+        let size = tab.compute_split_size(index, request).unwrap();
+        tab.split_and_insert(index, request, FakePane::new(id, size.second))
+            .unwrap();
+    }
+
+    /// Each pane's id, left column, width, and the width its terminal was
+    /// given, left to right.
+    fn columns(tab: &Tab) -> Vec<(PaneId, usize, usize, usize)> {
+        tab.iter_panes()
+            .iter()
+            .map(|p| {
+                (
+                    p.pane.pane_id(),
+                    p.left,
+                    p.width,
+                    p.pane.get_dimensions().cols,
+                )
+            })
+            .collect()
+    }
+
+    /// 80 columns: pane 1 (39) | pane 2 (19) | pane 3 (20), the last two in
+    /// a split of their own.
+    fn three_columns() -> Tab {
+        let tab = Tab::new(&size());
+        tab.assign_pane(&FakePane::new(1, size()));
+        split(&tab, 0, SplitDirection::Horizontal, 2);
+        split(&tab, 1, SplitDirection::Horizontal, 3);
+        assert_eq!(
+            columns(&tab),
+            vec![(1, 0, 39, 39), (2, 40, 19, 19), (3, 60, 20, 20)]
+        );
+        tab
+    }
+
+    #[test]
+    fn moving_a_divider_into_a_nested_split_shrinks_the_panes_beside_it_first() {
+        let tab = three_columns();
+        // The root divider moves 30 columns right: pane 2, beside it, gives
+        // all it can, and pane 3 the rest.
+        tab.resize_split_by(0, 30);
+        assert_eq!(
+            columns(&tab),
+            vec![(1, 0, 69, 69), (2, 70, 1, 1), (3, 72, 8, 8)]
+        );
+        // Moving it back gives the columns to pane 2, beside it.
+        tab.resize_split_by(0, -30);
+        assert_eq!(
+            columns(&tab),
+            vec![(1, 0, 39, 39), (2, 40, 31, 31), (3, 72, 8, 8)]
+        );
+    }
+
+    #[test]
+    fn a_divider_stops_where_the_panes_beyond_it_are_one_cell() {
+        let tab = three_columns();
+        tab.resize_split_by(0, 1000);
+        assert_eq!(
+            columns(&tab),
+            vec![(1, 0, 76, 76), (2, 77, 1, 1), (3, 79, 1, 1)]
+        );
+        // Every column the divider gives back goes to pane 2, beside it.
+        tab.resize_split_by(0, -1000);
+        assert_eq!(
+            columns(&tab),
+            vec![(1, 0, 1, 1), (2, 2, 76, 76), (3, 79, 1, 1)]
+        );
+    }
+
+    #[test]
+    fn a_split_is_resized_by_the_pane_before_its_divider() {
+        // 80 columns: [pane 1 (39) | pane 2 (40)], then pane 1 split again:
+        // [[pane 1 (19) | pane 3 (19)] | pane 2 (40)].
+        let tab = Tab::new(&size());
+        tab.assign_pane(&FakePane::new(1, size()));
+        split(&tab, 0, SplitDirection::Horizontal, 2);
+        split(&tab, 0, SplitDirection::Horizontal, 3);
+        assert_eq!(
+            columns(&tab),
+            vec![(1, 0, 19, 19), (3, 20, 19, 19), (2, 40, 40, 40)]
+        );
+        // Pane 3 is before the root divider: its first part becomes 50.
+        tab.resize_split(3, SplitDirection::Horizontal, 50).unwrap();
+        assert_eq!(
+            columns(&tab),
+            vec![(1, 0, 19, 19), (3, 20, 30, 30), (2, 51, 29, 29)]
+        );
+        // Pane 1 is before the inner divider.
+        tab.resize_split(1, SplitDirection::Horizontal, 10).unwrap();
+        assert_eq!(
+            columns(&tab),
+            vec![(1, 0, 10, 10), (3, 11, 39, 39), (2, 51, 29, 29)]
+        );
+        assert_eq!(
+            tab.resize_split(2, SplitDirection::Horizontal, 10)
+                .unwrap_err()
+                .to_string(),
+            "there is no divider to the right of pane 2"
+        );
+        assert_eq!(
+            tab.resize_split(1, SplitDirection::Vertical, 10)
+                .unwrap_err()
+                .to_string(),
+            "there is no divider below pane 1"
+        );
+        assert_eq!(
+            tab.resize_split(3, SplitDirection::Horizontal, 79)
+                .unwrap_err()
+                .to_string(),
+            "the split with the divider to the right of pane 3 can give its first part \
+             3 to 78 columns, not 79"
+        );
+        assert_eq!(
+            columns(&tab),
+            vec![(1, 0, 10, 10), (3, 11, 39, 39), (2, 51, 29, 29)]
+        );
+    }
+
+    #[test]
+    fn swapped_panes_trade_places_and_sizes_and_the_focus_follows_its_pane() {
+        let tab = three_columns();
+        let active = tab.get_active_pane().unwrap().pane_id();
+        assert_eq!(active, 3);
+        tab.swap_panes(1, 3).unwrap();
+        assert_eq!(
+            columns(&tab),
+            vec![(3, 0, 39, 39), (2, 40, 19, 19), (1, 60, 20, 20)]
+        );
+        assert_eq!(tab.get_active_pane().unwrap().pane_id(), 3);
+        assert_eq!(
+            tab.swap_panes(1, 9).unwrap_err().to_string(),
+            format!("pane 9 is not in tab {}", tab.tab_id())
+        );
     }
 
     fn is_send_and_sync<T: Send + Sync>() -> bool {

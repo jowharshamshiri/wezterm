@@ -48,6 +48,21 @@ The following options affect the behavior:
 * `--top` - Split vertically, with the new pane on the top.
 * `--top-level` - Rather than splitting the active pane, split the entire window.
 
+## Moving a pane
+
+With `--move-pane-id`, the new part of the split takes an existing pane
+instead of a new one: the pane moves there from wherever it is, in this tab
+or another. A tab left without panes closes. This places pane 5 left of
+pane 2, 20 columns wide:
+
+```
+$ wsb-wezterm cli split-pane --pane-id 2 --left --cells 20 --move-pane-id 5
+```
+
+To move a pane to a tab of its own, see
+[move-pane-to-new-tab](move-pane-to-new-tab.md); to trade the places of two
+panes, [swap-panes](swap-panes.md).
+
 ## Synopsis
 
 ```console

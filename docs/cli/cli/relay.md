@@ -1,12 +1,13 @@
-# `wsb-wezterm cli relay --pane-id ID`
+# `wsb-wezterm cli relay`
 
 {{since('nightly')}}
 
 *Run `wsb-wezterm cli relay --help` to see more help*
 
-Relays one pane to another program over stdin and stdout, so that the
-program can show the pane and type into it: a terminal emulator in a web
-page, for instance.
+Relays one pane (`--pane-id ID`), or a whole tab
+(`--tab-of-pane ID`, see [Relaying a tab](#relaying-a-tab)), to another
+program over stdin and stdout, so that the program can show the panes and
+type into them: a terminal emulator in a web page, for instance.
 
 The relay attaches to the multiplexer as a client, as a GUI does, and keeps
 a mirror of the pane. It writes the pane's screen as escape sequences, a full
@@ -73,6 +74,43 @@ $ wsb-wezterm cli relay --pane-id 0
 {"t":"text","text":"ls"}
 {"t":"key","key":"Enter"}
 {"t":"screen","data":"..."}
+```
+
+## Relaying a tab
+
+With `--tab-of-pane ID` the relay relays every pane of the tab that holds the
+pane `ID`, and the tab's layout, over one connection. It follows the pane:
+when the pane moves to another tab, the relay goes with it. Once the pane is
+gone, the relay goes on with the tab it was last in, and ends with an `exit`
+event when that tab is gone.
+
+The events above are sent for each pane of the tab, each with a `pane` field
+naming it. `hello` comes when a pane enters the tab (or the relay starts),
+before its first `screen`. The relay also writes:
+
+| `t` | Fields | Meaning |
+|---|---|---|
+| `layout` | `tab` | The tab's layout, as [get-layout](get-layout.md) prints it: first, and whenever it changes (a split, a resize, a move, a swap, a change of focus or zoom, a pane closing, the tab's size). |
+| `gone` | `pane` | The pane left the tab: it closed, or moved to another tab. |
+
+When the followed pane moves to another tab, the relay sends `gone` for each
+pane it leaves behind, then the new tab's `layout`, then `hello` for each of
+its other panes.
+
+Every event the relay reads names its pane with a `pane` field, except
+`resize`: a `resize` without `pane` sizes the whole tab, as a GUI window of
+that size would, and only with `--sized-by-input`. A pane's own size comes
+from the tab's layout, so a `resize` naming a pane is refused.
+
+```console
+$ wsb-wezterm cli relay --tab-of-pane 0
+{"t":"layout","tab":{"tab_id":0,"window_id":0,"cols":80,"rows":24,"active":1,"zoomed":null,"root":{"split":{...}}}}
+{"t":"hello","cols":39,"rows":24,"palette":{...},"title":"bash","mouse_grab":false,"sized_by_input":false,"pane":0}
+{"t":"screen","data":"...","pane":0}
+{"t":"hello","cols":40,"rows":24,"palette":{...},"title":"bash","mouse_grab":false,"sized_by_input":false,"pane":1}
+{"t":"screen","data":"...","pane":1}
+{"t":"text","text":"ls","pane":1}
+{"t":"key","key":"Enter","pane":1}
 ```
 
 ## Synopsis

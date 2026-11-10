@@ -1,0 +1,8 @@
+Print a tab's layout as JSON: its tree of splits, and where each pane is, how big, what runs in it, and which pane is focused and zoomed
+
+Usage: wsb-wezterm cli get-layout [OPTIONS]
+
+Options:
+      --tab-id <TAB_ID>    The tab to read. The default is the tab of `--pane-id`
+      --pane-id <PANE_ID>  Read the tab that holds this pane. The default is the current pane, from the environment variable WSB_WEZTERM_PANE
+  -h, --help               Print help

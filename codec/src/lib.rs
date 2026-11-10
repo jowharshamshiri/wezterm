@@ -15,9 +15,10 @@
 use anyhow::{bail, Context as _, Error};
 use config::keyassignment::{PaneDirection, ScrollbackEraseMode};
 use mux::client::{ClientId, ClientInfo, ClientRole};
+use mux::layout::LayoutNode;
 use mux::pane::PaneId;
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::{PaneNode, SerdeUrl, SplitRequest, TabId};
+use mux::tab::{PaneNode, SerdeUrl, SplitDirection, SplitRequest, TabId};
 use mux::window::WindowId;
 use portable_pty::CommandBuilder;
 use rangeset::*;
@@ -442,7 +443,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 48;
+pub const CODEC_VERSION: usize = 49;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -494,7 +495,7 @@ pdu! {
     GetPaneRenderableDimensions: 51,
     GetPaneRenderableDimensionsResponse: 52,
     PaneFocused: 53,
-    TabResized: 54,
+    TabLayoutChanged: 54,
     TabAddedToWindow: 55,
     TabTitleChanged: 56,
     WindowTitleChanged: 57,
@@ -505,6 +506,9 @@ pdu! {
     AdjustPaneSize: 62,
     TabVarChanged: 63,
     WindowVarChanged: 64,
+    ResizeSplit: 65,
+    SwapPanes: 66,
+    SetTabLayout: 67,
 }
 
 impl Pdu {
@@ -808,8 +812,10 @@ pub struct TabAddedToWindow {
     pub window_id: WindowId,
 }
 
+/// Sent by the server to every client when the tab's panes, their places or
+/// sizes, the zoomed pane or the focused pane changed.
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
-pub struct TabResized {
+pub struct TabLayoutChanged {
     pub tab_id: TabId,
 }
 
@@ -909,6 +915,30 @@ pub struct AdjustPaneSize {
     pub pane_id: PaneId,
     pub direction: PaneDirection,
     pub amount: usize,
+}
+
+/// Gives the first part of the split whose divider is to the right of
+/// (`Horizontal`) or below (`Vertical`) the pane `first_cells` cells, the
+/// second part the rest (`Tab::resize_split`).
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct ResizeSplit {
+    pub pane_id: PaneId,
+    pub direction: SplitDirection,
+    pub first_cells: usize,
+}
+
+/// Swaps two panes, in one tab or in two (`Mux::swap_panes`).
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SwapPanes {
+    pub pane_id: PaneId,
+    pub other_pane_id: PaneId,
+}
+
+/// Gives a tab a layout (`Mux::set_tab_layout`).
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SetTabLayout {
+    pub tab_id: TabId,
+    pub root: LayoutNode,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

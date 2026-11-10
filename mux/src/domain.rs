@@ -161,6 +161,14 @@ pub trait Domain: Downcast + Send + Sync {
         Ok(None)
     }
 
+    /// Whether another program arranges this domain's panes: a multiplexer
+    /// server, or tmux, whose tabs this mux mirrors. Swapping such panes, or
+    /// setting their tab's layout, here would change only the mirror, so the
+    /// mux refuses it; the program that arranges them is asked instead.
+    fn mirrors_remote_layout(&self) -> bool {
+        false
+    }
+
     /// Returns false if the `spawn` method will never succeed.
     /// There are some internal placeholder domains that are
     /// pre-created with local UI that we do not want to allow

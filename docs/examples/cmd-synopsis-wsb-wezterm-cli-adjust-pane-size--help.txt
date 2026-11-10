@@ -1,4 +1,4 @@
-Adjust the size of a pane directionally
+Move the divider of the nearest split around a pane that divides in a direction, by a number of cells that way
 
 Usage: wsb-wezterm cli adjust-pane-size [OPTIONS] <DIRECTION>
 

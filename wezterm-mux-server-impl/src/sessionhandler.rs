@@ -1035,11 +1035,66 @@ impl SessionHandler {
                                 }
                             };
 
-                            tab.adjust_pane_size(direction, amount);
+                            tab.adjust_pane_size(pane_id, direction, amount);
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,
                     )
+                })
+                .detach();
+            }
+
+            Pdu::ResizeSplit(ResizeSplit {
+                pane_id,
+                direction,
+                first_cells,
+            }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let (_domain_id, _window_id, tab_id) = mux
+                                .resolve_pane_id(pane_id)
+                                .ok_or_else(|| anyhow!("there is no pane {pane_id}"))?;
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("there is no tab {tab_id}"))?;
+                            tab.resize_split(pane_id, direction, first_cells)?;
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
+            Pdu::SwapPanes(SwapPanes {
+                pane_id,
+                other_pane_id,
+            }) => {
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            Mux::get().swap_panes(pane_id, other_pane_id)?;
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
+            Pdu::SetTabLayout(SetTabLayout { tab_id, root }) => {
+                spawn_into_main_thread(async move {
+                    promise::spawn::spawn(async move {
+                        send_response(
+                            Mux::get()
+                                .set_tab_layout(tab_id, root)
+                                .await
+                                .map(|()| Pdu::UnitResponse(UnitResponse {})),
+                        )
+                    })
+                    .detach();
                 })
                 .detach();
             }
@@ -1062,7 +1117,7 @@ impl SessionHandler {
             | Pdu::GetClientListResponse { .. }
             | Pdu::PaneRemoved { .. }
             | Pdu::PaneFocused { .. }
-            | Pdu::TabResized { .. }
+            | Pdu::TabLayoutChanged { .. }
             | Pdu::GetImageCellResponse { .. }
             | Pdu::MovePaneToNewTabResponse { .. }
             | Pdu::TabAddedToWindow { .. }

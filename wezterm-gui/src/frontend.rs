@@ -91,7 +91,7 @@ impl GuiFrontEnd {
                 // Variables identify tabs and windows to programs; they show nowhere.
                 MuxNotification::TabVarChanged { .. }
                 | MuxNotification::WindowVarChanged { .. } => {}
-                MuxNotification::TabResized(_) => {}
+                MuxNotification::TabLayoutChanged(_) => {}
                 MuxNotification::TabAddedToWindow { .. } => {}
                 MuxNotification::PaneRemoved(_) => {}
                 MuxNotification::WindowInvalidated(_) => {}

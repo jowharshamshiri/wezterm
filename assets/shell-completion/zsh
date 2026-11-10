@@ -159,7 +159,8 @@ _arguments "${_arguments_options[@]}" : \
 (relay)
 _arguments "${_arguments_options[@]}" : \
 '--pane-id=[The pane to relay, as \`wsb-wezterm cli list\` shows it]:PANE_ID:_default' \
-'--sized-by-input[Let \`resize\` events size the pane. Without it the pane keeps the size its other clients give it, and \`resize\` is refused]' \
+'--tab-of-pane=[Relay every pane of the tab that holds this pane, and the tab'\''s layout, following the pane when it moves to another tab. Once the pane is gone, the relay goes on with the tab it was last in]:TAB_OF_PANE:_default' \
+'--sized-by-input[Let \`resize\` events size the pane, or with \`--tab-of-pane\` the tab. Without it the pane or tab keeps the size its other clients give it, and \`resize\` is refused]' \
 '-h[Print help]' \
 '--help[Print help]' \
 && ret=0
@@ -221,12 +222,54 @@ _arguments "${_arguments_options[@]}" : \
 '::text -- The text to send. If omitted, will read the text from stdin:_default' \
 && ret=0
 ;;
+(send-keys)
+_arguments "${_arguments_options[@]}" : \
+'--pane-id=[The pane to send the keys to. The default is the current pane, from the environment variable WSB_WEZTERM_PANE]:PANE_ID:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+'*::keys -- The keys, pressed in order\: each a key named as in a key binding (`a`, `Enter`, `UpArrow`, `F5`), after modifiers and a `+` when it has them (`CTRL+c`, `CTRL|SHIFT+t`, `CTRL++`):_default' \
+&& ret=0
+;;
 (get-text)
 _arguments "${_arguments_options[@]}" : \
 '--pane-id=[Specify the target pane. The default is to use the current pane based on the environment variable WSB_WEZTERM_PANE]:PANE_ID:_default' \
 '--start-line=[The starting line number. 0 is the first line of terminal screen. Negative numbers proceed backwards into the scrollback. The default value is unspecified is 0, the first line of the terminal screen]:START_LINE:_default' \
 '--end-line=[The ending line number. 0 is the first line of terminal screen. Negative numbers proceed backwards into the scrollback. The default value if unspecified is the bottom of the the terminal screen]:END_LINE:_default' \
 '--escapes[Include escape sequences that color and style the text. If omitted, unattributed text will be returned]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(get-layout)
+_arguments "${_arguments_options[@]}" : \
+'(--pane-id)--tab-id=[The tab to read. The default is the tab of \`--pane-id\`]:TAB_ID:_default' \
+'--pane-id=[Read the tab that holds this pane. The default is the current pane, from the environment variable WSB_WEZTERM_PANE]:PANE_ID:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(set-layout)
+_arguments "${_arguments_options[@]}" : \
+'(--pane-id)--tab-id=[The tab to arrange. The default is the tab of \`--pane-id\`]:TAB_ID:_default' \
+'--pane-id=[Arrange the tab that holds this pane. The default is the current pane, from the environment variable WSB_WEZTERM_PANE]:PANE_ID:_default' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(resize-split)
+_arguments "${_arguments_options[@]}" : \
+'--pane-id=[The pane before the divider\: the split resized is the nearest one around this pane whose first part holds it and whose divider is on the \`--direction\` side. The default is the current pane, from the environment variable WSB_WEZTERM_PANE]:PANE_ID:_default' \
+'--direction=[Which divider of the pane\: the one to its right, or below it]:DIRECTION:((right\:"The divider to the right of the pane"
+down\:"The divider below the pane"))' \
+'--first-cells=[The cells the split'\''s first part (left of or above the divider) gets; the second part gets the rest]:FIRST_CELLS:_default' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(swap-panes)
+_arguments "${_arguments_options[@]}" : \
+'--pane-id=[One of the panes. The default is the current pane, from the environment variable WSB_WEZTERM_PANE]:PANE_ID:_default' \
+'--with=[The other pane]:WITH:_default' \
 '-h[Print help]' \
 '--help[Print help]' \
 && ret=0
@@ -388,7 +431,27 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(send-keys)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (get-text)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get-layout)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(set-layout)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(resize-split)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(swap-panes)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -595,7 +658,27 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(send-keys)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (get-text)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get-layout)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(set-layout)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(resize-split)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(swap-panes)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -721,12 +804,17 @@ _wsb-wezterm__subcmd__cli_commands() {
 'split-pane:split the current pane. Outputs the pane-id for the newly created pane on success' \
 'spawn:Spawn a command into a new window or tab Outputs the pane-id for the newly created pane on success' \
 'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
+'send-keys:Press keys in a pane, as typed on a keyboard\: the terminal in the pane encodes them in the modes its program asked for' \
 'get-text:Retrieves the textual content of a pane and output it to stdout' \
+'get-layout:Print a tab'\''s layout as JSON\: its tree of splits, and where each pane is, how big, what runs in it, and which pane is focused and zoomed' \
+'set-layout:Give a tab a whole layout, read as JSON from stdin, and print the layout it then has' \
+'resize-split:Set the size of a split by the pane before its divider' \
+'swap-panes:Swap two panes, each taking the other'\''s place and size' \
 'activate-pane-direction:Activate an adjacent pane in the specified direction' \
 'get-pane-direction:Determine the adjacent pane in the specified direction' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
-'adjust-pane-size:Adjust the size of a pane directionally' \
+'adjust-pane-size:Move the divider of the nearest split around a pane that divides in a direction, by a number of cells that way' \
 'activate-tab:Activate a tab' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
@@ -758,6 +846,11 @@ _wsb-wezterm__subcmd__cli__subcmd__adjust-pane-size_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm cli adjust-pane-size commands' commands "$@"
 }
+(( $+functions[_wsb-wezterm__subcmd__cli__subcmd__get-layout_commands] )) ||
+_wsb-wezterm__subcmd__cli__subcmd__get-layout_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm cli get-layout commands' commands "$@"
+}
 (( $+functions[_wsb-wezterm__subcmd__cli__subcmd__get-pane-direction_commands] )) ||
 _wsb-wezterm__subcmd__cli__subcmd__get-pane-direction_commands() {
     local commands; commands=()
@@ -780,12 +873,17 @@ _wsb-wezterm__subcmd__cli__subcmd__help_commands() {
 'split-pane:split the current pane. Outputs the pane-id for the newly created pane on success' \
 'spawn:Spawn a command into a new window or tab Outputs the pane-id for the newly created pane on success' \
 'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
+'send-keys:Press keys in a pane, as typed on a keyboard\: the terminal in the pane encodes them in the modes its program asked for' \
 'get-text:Retrieves the textual content of a pane and output it to stdout' \
+'get-layout:Print a tab'\''s layout as JSON\: its tree of splits, and where each pane is, how big, what runs in it, and which pane is focused and zoomed' \
+'set-layout:Give a tab a whole layout, read as JSON from stdin, and print the layout it then has' \
+'resize-split:Set the size of a split by the pane before its divider' \
+'swap-panes:Swap two panes, each taking the other'\''s place and size' \
 'activate-pane-direction:Activate an adjacent pane in the specified direction' \
 'get-pane-direction:Determine the adjacent pane in the specified direction' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
-'adjust-pane-size:Adjust the size of a pane directionally' \
+'adjust-pane-size:Move the divider of the nearest split around a pane that divides in a direction, by a number of cells that way' \
 'activate-tab:Activate a tab' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
@@ -816,6 +914,11 @@ _wsb-wezterm__subcmd__cli__subcmd__help__subcmd__activate-tab_commands() {
 _wsb-wezterm__subcmd__cli__subcmd__help__subcmd__adjust-pane-size_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm cli help adjust-pane-size commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__get-layout_commands] )) ||
+_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__get-layout_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm cli help get-layout commands' commands "$@"
 }
 (( $+functions[_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__get-pane-direction_commands] )) ||
 _wsb-wezterm__subcmd__cli__subcmd__help__subcmd__get-pane-direction_commands() {
@@ -867,10 +970,25 @@ _wsb-wezterm__subcmd__cli__subcmd__help__subcmd__rename-workspace_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm cli help rename-workspace commands' commands "$@"
 }
+(( $+functions[_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__resize-split_commands] )) ||
+_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__resize-split_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm cli help resize-split commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__send-keys_commands] )) ||
+_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__send-keys_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm cli help send-keys commands' commands "$@"
+}
 (( $+functions[_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__send-text_commands] )) ||
 _wsb-wezterm__subcmd__cli__subcmd__help__subcmd__send-text_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm cli help send-text commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__set-layout_commands] )) ||
+_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__set-layout_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm cli help set-layout commands' commands "$@"
 }
 (( $+functions[_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__set-tab-title_commands] )) ||
 _wsb-wezterm__subcmd__cli__subcmd__help__subcmd__set-tab-title_commands() {
@@ -901,6 +1019,11 @@ _wsb-wezterm__subcmd__cli__subcmd__help__subcmd__spawn_commands() {
 _wsb-wezterm__subcmd__cli__subcmd__help__subcmd__split-pane_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm cli help split-pane commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__swap-panes_commands] )) ||
+_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__swap-panes_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm cli help swap-panes commands' commands "$@"
 }
 (( $+functions[_wsb-wezterm__subcmd__cli__subcmd__help__subcmd__tlscreds_commands] )) ||
 _wsb-wezterm__subcmd__cli__subcmd__help__subcmd__tlscreds_commands() {
@@ -947,10 +1070,25 @@ _wsb-wezterm__subcmd__cli__subcmd__rename-workspace_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm cli rename-workspace commands' commands "$@"
 }
+(( $+functions[_wsb-wezterm__subcmd__cli__subcmd__resize-split_commands] )) ||
+_wsb-wezterm__subcmd__cli__subcmd__resize-split_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm cli resize-split commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__cli__subcmd__send-keys_commands] )) ||
+_wsb-wezterm__subcmd__cli__subcmd__send-keys_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm cli send-keys commands' commands "$@"
+}
 (( $+functions[_wsb-wezterm__subcmd__cli__subcmd__send-text_commands] )) ||
 _wsb-wezterm__subcmd__cli__subcmd__send-text_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm cli send-text commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__cli__subcmd__set-layout_commands] )) ||
+_wsb-wezterm__subcmd__cli__subcmd__set-layout_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm cli set-layout commands' commands "$@"
 }
 (( $+functions[_wsb-wezterm__subcmd__cli__subcmd__set-tab-title_commands] )) ||
 _wsb-wezterm__subcmd__cli__subcmd__set-tab-title_commands() {
@@ -981,6 +1119,11 @@ _wsb-wezterm__subcmd__cli__subcmd__spawn_commands() {
 _wsb-wezterm__subcmd__cli__subcmd__split-pane_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm cli split-pane commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__cli__subcmd__swap-panes_commands] )) ||
+_wsb-wezterm__subcmd__cli__subcmd__swap-panes_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm cli swap-panes commands' commands "$@"
 }
 (( $+functions[_wsb-wezterm__subcmd__cli__subcmd__tlscreds_commands] )) ||
 _wsb-wezterm__subcmd__cli__subcmd__tlscreds_commands() {
@@ -1034,12 +1177,17 @@ _wsb-wezterm__subcmd__help__subcmd__cli_commands() {
 'split-pane:split the current pane. Outputs the pane-id for the newly created pane on success' \
 'spawn:Spawn a command into a new window or tab Outputs the pane-id for the newly created pane on success' \
 'send-text:Send text to a pane as though it were pasted. If bracketed paste mode is enabled in the pane, then the text will be sent as a bracketed paste' \
+'send-keys:Press keys in a pane, as typed on a keyboard\: the terminal in the pane encodes them in the modes its program asked for' \
 'get-text:Retrieves the textual content of a pane and output it to stdout' \
+'get-layout:Print a tab'\''s layout as JSON\: its tree of splits, and where each pane is, how big, what runs in it, and which pane is focused and zoomed' \
+'set-layout:Give a tab a whole layout, read as JSON from stdin, and print the layout it then has' \
+'resize-split:Set the size of a split by the pane before its divider' \
+'swap-panes:Swap two panes, each taking the other'\''s place and size' \
 'activate-pane-direction:Activate an adjacent pane in the specified direction' \
 'get-pane-direction:Determine the adjacent pane in the specified direction' \
 'kill-pane:Kill a pane' \
 'activate-pane:Activate (focus) a pane' \
-'adjust-pane-size:Adjust the size of a pane directionally' \
+'adjust-pane-size:Move the divider of the nearest split around a pane that divides in a direction, by a number of cells that way' \
 'activate-tab:Activate a tab' \
 'set-tab-title:Change the title of a tab' \
 'set-window-title:Change the title of a window' \
@@ -1069,6 +1217,11 @@ _wsb-wezterm__subcmd__help__subcmd__cli__subcmd__activate-tab_commands() {
 _wsb-wezterm__subcmd__help__subcmd__cli__subcmd__adjust-pane-size_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm help cli adjust-pane-size commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__get-layout_commands] )) ||
+_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__get-layout_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm help cli get-layout commands' commands "$@"
 }
 (( $+functions[_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__get-pane-direction_commands] )) ||
 _wsb-wezterm__subcmd__help__subcmd__cli__subcmd__get-pane-direction_commands() {
@@ -1115,10 +1268,25 @@ _wsb-wezterm__subcmd__help__subcmd__cli__subcmd__rename-workspace_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm help cli rename-workspace commands' commands "$@"
 }
+(( $+functions[_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__resize-split_commands] )) ||
+_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__resize-split_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm help cli resize-split commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__send-keys_commands] )) ||
+_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__send-keys_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm help cli send-keys commands' commands "$@"
+}
 (( $+functions[_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__send-text_commands] )) ||
 _wsb-wezterm__subcmd__help__subcmd__cli__subcmd__send-text_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm help cli send-text commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__set-layout_commands] )) ||
+_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__set-layout_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm help cli set-layout commands' commands "$@"
 }
 (( $+functions[_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__set-tab-title_commands] )) ||
 _wsb-wezterm__subcmd__help__subcmd__cli__subcmd__set-tab-title_commands() {
@@ -1149,6 +1317,11 @@ _wsb-wezterm__subcmd__help__subcmd__cli__subcmd__spawn_commands() {
 _wsb-wezterm__subcmd__help__subcmd__cli__subcmd__split-pane_commands() {
     local commands; commands=()
     _describe -t commands 'wsb-wezterm help cli split-pane commands' commands "$@"
+}
+(( $+functions[_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__swap-panes_commands] )) ||
+_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__swap-panes_commands() {
+    local commands; commands=()
+    _describe -t commands 'wsb-wezterm help cli swap-panes commands' commands "$@"
 }
 (( $+functions[_wsb-wezterm__subcmd__help__subcmd__cli__subcmd__tlscreds_commands] )) ||
 _wsb-wezterm__subcmd__help__subcmd__cli__subcmd__tlscreds_commands() {

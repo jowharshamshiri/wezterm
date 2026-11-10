@@ -492,6 +492,11 @@ impl ClientDomain {
         inner.local_to_remote_window(local_window_id)
     }
 
+    pub fn remote_to_local_tab_id(&self, remote_tab_id: TabId) -> Option<TabId> {
+        let inner = self.inner()?;
+        inner.remote_to_local_tab_id(remote_tab_id)
+    }
+
     pub fn local_to_remote_tab_id(&self, local_tab_id: TabId) -> Option<TabId> {
         let inner = self.inner()?;
         inner.local_to_remote_tab(local_tab_id)
@@ -1103,6 +1108,10 @@ impl Domain for ClientDomain {
     }
 
     fn detachable(&self) -> bool {
+        true
+    }
+
+    fn mirrors_remote_layout(&self) -> bool {
         true
     }
 

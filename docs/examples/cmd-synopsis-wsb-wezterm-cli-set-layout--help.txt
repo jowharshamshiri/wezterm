@@ -1,0 +1,8 @@
+Give a tab a whole layout, read as JSON from stdin, and print the layout it then has
+
+Usage: wsb-wezterm cli set-layout [OPTIONS]
+
+Options:
+      --tab-id <TAB_ID>    The tab to arrange. The default is the tab of `--pane-id`
+      --pane-id <PANE_ID>  Arrange the tab that holds this pane. The default is the current pane, from the environment variable WSB_WEZTERM_PANE
+  -h, --help               Print help

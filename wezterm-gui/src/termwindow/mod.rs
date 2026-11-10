@@ -1381,7 +1381,7 @@ impl TermWindow {
                     // Also handled by clientpane
                     self.update_title_post_status();
                 }
-                MuxNotification::TabResized(_) => {
+                MuxNotification::TabLayoutChanged(_) => {
                     // Also handled by wezterm-client
                     self.update_title_post_status();
                 }
@@ -1587,7 +1587,7 @@ impl TermWindow {
                 // (next notifs should finish the workspace switch & reconcile the state)
                 return true;
             }
-            MuxNotification::TabResized(tab_id)
+            MuxNotification::TabLayoutChanged(tab_id)
             | MuxNotification::TabTitleChanged { tab_id, .. } => {
                 let mux = Mux::get();
                 if mux.window_containing_tab(tab_id) == Some(mux_window_id) {
@@ -3040,7 +3040,9 @@ impl TermWindow {
                 let tab_id = tab.tab_id();
 
                 if self.tab_state(tab_id).overlay.is_none() {
-                    tab.adjust_pane_size(*direction, *amount);
+                    if let Some(pane) = tab.get_active_pane() {
+                        tab.adjust_pane_size(pane.pane_id(), *direction, *amount);
+                    }
                 }
             }
             ActivatePaneByIndex(index) => {

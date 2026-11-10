@@ -1,0 +1,10 @@
+Press keys in a pane, as typed on a keyboard: the terminal in the pane encodes them in the modes its program asked for
+
+Usage: wsb-wezterm cli send-keys [OPTIONS] <KEYS>...
+
+Arguments:
+  <KEYS>...  The keys, pressed in order: each a key named as in a key binding (`a`, `Enter`, `UpArrow`, `F5`), after modifiers and a `+` when it has them (`CTRL+c`, `CTRL|SHIFT+t`, `CTRL++`)
+
+Options:
+      --pane-id <PANE_ID>  The pane to send the keys to. The default is the current pane, from the environment variable WSB_WEZTERM_PANE
+  -h, --help               Print help

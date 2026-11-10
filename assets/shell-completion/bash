@@ -70,6 +70,9 @@ _wsb__wezterm() {
             wsb__wezterm__subcmd__cli,adjust-pane-size)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__adjust__subcmd__pane__subcmd__size"
                 ;;
+            wsb__wezterm__subcmd__cli,get-layout)
+                cmd="wsb__wezterm__subcmd__cli__subcmd__get__subcmd__layout"
+                ;;
             wsb__wezterm__subcmd__cli,get-pane-direction)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__get__subcmd__pane__subcmd__direction"
                 ;;
@@ -100,8 +103,17 @@ _wsb__wezterm() {
             wsb__wezterm__subcmd__cli,rename-workspace)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__rename__subcmd__workspace"
                 ;;
+            wsb__wezterm__subcmd__cli,resize-split)
+                cmd="wsb__wezterm__subcmd__cli__subcmd__resize__subcmd__split"
+                ;;
+            wsb__wezterm__subcmd__cli,send-keys)
+                cmd="wsb__wezterm__subcmd__cli__subcmd__send__subcmd__keys"
+                ;;
             wsb__wezterm__subcmd__cli,send-text)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__send__subcmd__text"
+                ;;
+            wsb__wezterm__subcmd__cli,set-layout)
+                cmd="wsb__wezterm__subcmd__cli__subcmd__set__subcmd__layout"
                 ;;
             wsb__wezterm__subcmd__cli,set-tab-title)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__set__subcmd__tab__subcmd__title"
@@ -121,6 +133,9 @@ _wsb__wezterm() {
             wsb__wezterm__subcmd__cli,split-pane)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__split__subcmd__pane"
                 ;;
+            wsb__wezterm__subcmd__cli,swap-panes)
+                cmd="wsb__wezterm__subcmd__cli__subcmd__swap__subcmd__panes"
+                ;;
             wsb__wezterm__subcmd__cli,tlscreds)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__tlscreds"
                 ;;
@@ -138,6 +153,9 @@ _wsb__wezterm() {
                 ;;
             wsb__wezterm__subcmd__cli__subcmd__help,adjust-pane-size)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__adjust__subcmd__pane__subcmd__size"
+                ;;
+            wsb__wezterm__subcmd__cli__subcmd__help,get-layout)
+                cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__get__subcmd__layout"
                 ;;
             wsb__wezterm__subcmd__cli__subcmd__help,get-pane-direction)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__get__subcmd__pane__subcmd__direction"
@@ -169,8 +187,17 @@ _wsb__wezterm() {
             wsb__wezterm__subcmd__cli__subcmd__help,rename-workspace)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__rename__subcmd__workspace"
                 ;;
+            wsb__wezterm__subcmd__cli__subcmd__help,resize-split)
+                cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__resize__subcmd__split"
+                ;;
+            wsb__wezterm__subcmd__cli__subcmd__help,send-keys)
+                cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__send__subcmd__keys"
+                ;;
             wsb__wezterm__subcmd__cli__subcmd__help,send-text)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__send__subcmd__text"
+                ;;
+            wsb__wezterm__subcmd__cli__subcmd__help,set-layout)
+                cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__set__subcmd__layout"
                 ;;
             wsb__wezterm__subcmd__cli__subcmd__help,set-tab-title)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__set__subcmd__tab__subcmd__title"
@@ -189,6 +216,9 @@ _wsb__wezterm() {
                 ;;
             wsb__wezterm__subcmd__cli__subcmd__help,split-pane)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__split__subcmd__pane"
+                ;;
+            wsb__wezterm__subcmd__cli__subcmd__help,swap-panes)
+                cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__swap__subcmd__panes"
                 ;;
             wsb__wezterm__subcmd__cli__subcmd__help,tlscreds)
                 cmd="wsb__wezterm__subcmd__cli__subcmd__help__subcmd__tlscreds"
@@ -250,6 +280,9 @@ _wsb__wezterm() {
             wsb__wezterm__subcmd__help__subcmd__cli,adjust-pane-size)
                 cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__adjust__subcmd__pane__subcmd__size"
                 ;;
+            wsb__wezterm__subcmd__help__subcmd__cli,get-layout)
+                cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__get__subcmd__layout"
+                ;;
             wsb__wezterm__subcmd__help__subcmd__cli,get-pane-direction)
                 cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__get__subcmd__pane__subcmd__direction"
                 ;;
@@ -277,8 +310,17 @@ _wsb__wezterm() {
             wsb__wezterm__subcmd__help__subcmd__cli,rename-workspace)
                 cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__rename__subcmd__workspace"
                 ;;
+            wsb__wezterm__subcmd__help__subcmd__cli,resize-split)
+                cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__resize__subcmd__split"
+                ;;
+            wsb__wezterm__subcmd__help__subcmd__cli,send-keys)
+                cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__send__subcmd__keys"
+                ;;
             wsb__wezterm__subcmd__help__subcmd__cli,send-text)
                 cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__send__subcmd__text"
+                ;;
+            wsb__wezterm__subcmd__help__subcmd__cli,set-layout)
+                cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__set__subcmd__layout"
                 ;;
             wsb__wezterm__subcmd__help__subcmd__cli,set-tab-title)
                 cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__set__subcmd__tab__subcmd__title"
@@ -297,6 +339,9 @@ _wsb__wezterm() {
                 ;;
             wsb__wezterm__subcmd__help__subcmd__cli,split-pane)
                 cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__split__subcmd__pane"
+                ;;
+            wsb__wezterm__subcmd__help__subcmd__cli,swap-panes)
+                cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__swap__subcmd__panes"
                 ;;
             wsb__wezterm__subcmd__help__subcmd__cli,tlscreds)
                 cmd="wsb__wezterm__subcmd__help__subcmd__cli__subcmd__tlscreds"
@@ -381,7 +426,7 @@ _wsb__wezterm() {
             return 0
             ;;
         wsb__subcmd__wezterm__subcmd__cli)
-            opts="-h --no-auto-start --prefer-mux --class --help list list-clients proxy relay tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title set-tab-var set-window-var rename-workspace zoom-pane help"
+            opts="-h --no-auto-start --prefer-mux --class --help list list-clients proxy relay tlscreds move-pane-to-new-tab split-pane spawn send-text send-keys get-text get-layout set-layout resize-split swap-panes activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title set-tab-var set-window-var rename-workspace zoom-pane help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -486,6 +531,28 @@ _wsb__wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        wsb__subcmd__wezterm__subcmd__cli__subcmd__get__subcmd__layout)
+            opts="-h --tab-id --pane-id --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --tab-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pane-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         wsb__subcmd__wezterm__subcmd__cli__subcmd__get__subcmd__pane__subcmd__direction)
             opts="-h --pane-id --help Up Down Left Right Next Prev"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -531,7 +598,7 @@ _wsb__wezterm() {
             return 0
             ;;
         wsb__subcmd__wezterm__subcmd__cli__subcmd__help)
-            opts="list list-clients proxy relay tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title set-tab-var set-window-var rename-workspace zoom-pane help"
+            opts="list list-clients proxy relay tlscreds move-pane-to-new-tab split-pane spawn send-text send-keys get-text get-layout set-layout resize-split swap-panes activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title set-tab-var set-window-var rename-workspace zoom-pane help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -587,6 +654,20 @@ _wsb__wezterm() {
             return 0
             ;;
         wsb__subcmd__wezterm__subcmd__cli__subcmd__help__subcmd__adjust__subcmd__pane__subcmd__size)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wsb__subcmd__wezterm__subcmd__cli__subcmd__help__subcmd__get__subcmd__layout)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -740,7 +821,49 @@ _wsb__wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        wsb__subcmd__wezterm__subcmd__cli__subcmd__help__subcmd__resize__subcmd__split)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wsb__subcmd__wezterm__subcmd__cli__subcmd__help__subcmd__send__subcmd__keys)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         wsb__subcmd__wezterm__subcmd__cli__subcmd__help__subcmd__send__subcmd__text)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wsb__subcmd__wezterm__subcmd__cli__subcmd__help__subcmd__set__subcmd__layout)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -825,6 +948,20 @@ _wsb__wezterm() {
             return 0
             ;;
         wsb__subcmd__wezterm__subcmd__cli__subcmd__help__subcmd__split__subcmd__pane)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wsb__subcmd__wezterm__subcmd__cli__subcmd__help__subcmd__swap__subcmd__panes)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -961,13 +1098,17 @@ _wsb__wezterm() {
             return 0
             ;;
         wsb__subcmd__wezterm__subcmd__cli__subcmd__relay)
-            opts="-h --pane-id --sized-by-input --help"
+            opts="-h --pane-id --tab-of-pane --sized-by-input --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --pane-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --tab-of-pane)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -1000,6 +1141,50 @@ _wsb__wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        wsb__subcmd__wezterm__subcmd__cli__subcmd__resize__subcmd__split)
+            opts="-h --pane-id --direction --first-cells --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --pane-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --direction)
+                    COMPREPLY=($(compgen -W "right down" -- "${cur}"))
+                    return 0
+                    ;;
+                --first-cells)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wsb__subcmd__wezterm__subcmd__cli__subcmd__send__subcmd__keys)
+            opts="-h --pane-id --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --pane-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         wsb__subcmd__wezterm__subcmd__cli__subcmd__send__subcmd__text)
             opts="-h --pane-id --no-paste --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -1007,6 +1192,28 @@ _wsb__wezterm() {
                 return 0
             fi
             case "${prev}" in
+                --pane-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wsb__subcmd__wezterm__subcmd__cli__subcmd__set__subcmd__layout)
+            opts="-h --tab-id --pane-id --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --tab-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --pane-id)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
@@ -1180,6 +1387,28 @@ _wsb__wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        wsb__subcmd__wezterm__subcmd__cli__subcmd__swap__subcmd__panes)
+            opts="-h --pane-id --with --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --pane-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --with)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         wsb__subcmd__wezterm__subcmd__cli__subcmd__tlscreds)
             opts="-h --pem --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -1267,7 +1496,7 @@ _wsb__wezterm() {
             return 0
             ;;
         wsb__subcmd__wezterm__subcmd__help__subcmd__cli)
-            opts="list list-clients proxy relay tlscreds move-pane-to-new-tab split-pane spawn send-text get-text activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title set-tab-var set-window-var rename-workspace zoom-pane"
+            opts="list list-clients proxy relay tlscreds move-pane-to-new-tab split-pane spawn send-text send-keys get-text get-layout set-layout resize-split swap-panes activate-pane-direction get-pane-direction kill-pane activate-pane adjust-pane-size activate-tab set-tab-title set-window-title set-tab-var set-window-var rename-workspace zoom-pane"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1323,6 +1552,20 @@ _wsb__wezterm() {
             return 0
             ;;
         wsb__subcmd__wezterm__subcmd__help__subcmd__cli__subcmd__adjust__subcmd__pane__subcmd__size)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wsb__subcmd__wezterm__subcmd__help__subcmd__cli__subcmd__get__subcmd__layout)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1462,7 +1705,49 @@ _wsb__wezterm() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        wsb__subcmd__wezterm__subcmd__help__subcmd__cli__subcmd__resize__subcmd__split)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wsb__subcmd__wezterm__subcmd__help__subcmd__cli__subcmd__send__subcmd__keys)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         wsb__subcmd__wezterm__subcmd__help__subcmd__cli__subcmd__send__subcmd__text)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wsb__subcmd__wezterm__subcmd__help__subcmd__cli__subcmd__set__subcmd__layout)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1547,6 +1832,20 @@ _wsb__wezterm() {
             return 0
             ;;
         wsb__subcmd__wezterm__subcmd__help__subcmd__cli__subcmd__split__subcmd__pane)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        wsb__subcmd__wezterm__subcmd__help__subcmd__cli__subcmd__swap__subcmd__panes)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

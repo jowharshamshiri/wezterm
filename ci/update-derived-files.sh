@@ -41,6 +41,7 @@ for cmd in \
     activate-pane-direction \
     adjust-pane-size \
     activate-tab \
+    get-layout \
     get-pane-direction \
     get-text \
     kill-pane \
@@ -49,13 +50,17 @@ for cmd in \
     move-pane-to-new-tab \
     relay \
     rename-workspace \
+    resize-split \
+    send-keys \
     send-text \
+    set-layout \
     set-tab-title \
     set-tab-var \
     set-window-title \
     set-window-var \
     spawn \
     split-pane \
+    swap-panes \
     zoom-pane \
     ; do
   fname="docs/examples/cmd-synopsis-wsb-wezterm-cli-${cmd}--help.txt"

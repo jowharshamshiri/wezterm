@@ -425,6 +425,10 @@ impl Domain for TmuxDomain {
         false
     }
 
+    fn mirrors_remote_layout(&self) -> bool {
+        true
+    }
+
     fn detach(&self) -> anyhow::Result<()> {
         anyhow::bail!("detach not implemented for TmuxDomain");
     }

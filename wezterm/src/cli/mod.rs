@@ -7,22 +7,28 @@ mod activate_pane;
 mod activate_pane_direction;
 mod activate_tab;
 mod adjust_pane_size;
+mod get_layout;
 mod get_pane_direction;
 mod get_text;
 mod kill_pane;
+mod layout;
 mod list;
 mod list_clients;
 mod move_pane_to_new_tab;
 mod proxy;
 mod relay;
 mod rename_workspace;
+mod resize_split;
+mod send_keys;
 mod send_text;
+mod set_layout;
 mod set_tab_title;
 mod set_tab_var;
 mod set_window_title;
 mod set_window_var;
 mod spawn_command;
 mod split_pane;
+mod swap_panes;
 mod tls_creds;
 mod zoom_pane;
 
@@ -126,9 +132,32 @@ Outputs the pane-id for the newly created pane on success"
     #[command(name = "send-text", rename_all = "kebab")]
     SendText(send_text::SendText),
 
+    /// Press keys in a pane, as typed on a keyboard: the terminal in the
+    /// pane encodes them in the modes its program asked for.
+    #[command(name = "send-keys", rename_all = "kebab")]
+    SendKeys(send_keys::SendKeys),
+
     /// Retrieves the textual content of a pane and output it to stdout
     #[command(name = "get-text", rename_all = "kebab")]
     GetText(get_text::GetText),
+
+    /// Print a tab's layout as JSON: its tree of splits, and where each pane
+    /// is, how big, what runs in it, and which pane is focused and zoomed.
+    #[command(name = "get-layout", rename_all = "kebab")]
+    GetLayout(get_layout::GetLayout),
+
+    /// Give a tab a whole layout, read as JSON from stdin, and print the
+    /// layout it then has.
+    #[command(name = "set-layout", rename_all = "kebab")]
+    SetLayout(set_layout::SetLayout),
+
+    /// Set the size of a split by the pane before its divider.
+    #[command(name = "resize-split", rename_all = "kebab")]
+    ResizeSplit(resize_split::ResizeSplit),
+
+    /// Swap two panes, each taking the other's place and size.
+    #[command(name = "swap-panes", rename_all = "kebab")]
+    SwapPanes(swap_panes::SwapPanes),
 
     /// Activate an adjacent pane in the specified direction.
     #[command(name = "activate-pane-direction", rename_all = "kebab")]
@@ -149,7 +178,8 @@ Outputs the pane-id for the newly created pane on success"
     #[command(name = "activate-pane", rename_all = "kebab")]
     ActivatePane(activate_pane::ActivatePane),
 
-    /// Adjust the size of a pane directionally
+    /// Move the divider of the nearest split around a pane that divides
+    /// in a direction, by a number of cells that way
     #[command(name = "adjust-pane-size", rename_all = "kebab")]
     AdjustPaneSize(adjust_pane_size::CliAdjustPaneSize),
 
@@ -203,6 +233,11 @@ async fn run_cli_async(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()>
         CliSubCommand::SplitPane(cmd) => cmd.run(client).await,
         CliSubCommand::SendText(cmd) => cmd.run(client).await,
         CliSubCommand::GetText(cmd) => cmd.run(client).await,
+        CliSubCommand::SendKeys(cmd) => cmd.run(client, &crate::init_config(opts)?).await,
+        CliSubCommand::GetLayout(cmd) => cmd.run(client).await,
+        CliSubCommand::SetLayout(cmd) => cmd.run(client).await,
+        CliSubCommand::ResizeSplit(cmd) => cmd.run(client).await,
+        CliSubCommand::SwapPanes(cmd) => cmd.run(client).await,
         CliSubCommand::SpawnCommand(cmd) => cmd.run(client, &crate::init_config(opts)?).await,
         CliSubCommand::Proxy(cmd) => cmd.run(client, &crate::init_config(opts)?).await,
         CliSubCommand::Relay(_) => unreachable!("run_cli runs the relay on its own executor"),

@@ -37,6 +37,7 @@ pub mod activity;
 pub mod client;
 pub mod connui;
 pub mod domain;
+pub mod layout;
 pub mod localpane;
 pub mod pane;
 pub mod renderable;
@@ -82,7 +83,9 @@ pub enum MuxNotification {
         window_id: WindowId,
     },
     PaneFocused(PaneId),
-    TabResized(TabId),
+    /// The tab's panes, their places or sizes, the zoomed pane or the focused
+    /// pane changed. Every change to the tab's layout sends it.
+    TabLayoutChanged(TabId),
     TabTitleChanged {
         tab_id: TabId,
         title: String,
