@@ -37,7 +37,7 @@ fn a_relay_mirrors_a_pane_and_types_into_it() {
     // The terminal echoes what is typed, and cat prints it again.
     relay.send(json!({"t": "text", "text": "hi"}));
     relay.send(json!({"t": "key", "key": "Enter"}));
-    relay.expect_screen_containing("hi\u{1b}[2;1Hhi");
+    relay.expect_screen_showing("hi\nhi");
 
     relay.send(json!({"t": "repaint"}));
     let repaint = relay.expect("screen");
@@ -88,7 +88,7 @@ fn a_relay_refuses_what_is_not_an_event_and_keeps_going() {
     relay.send(json!({"t": "key", "key": "a", "mods": "LEADER"}));
     relay.expect("error");
     relay.send(json!({"t": "text", "text": "ok"}));
-    relay.expect_screen_containing("ok");
+    relay.expect_screen_showing("ok");
 }
 
 #[test]

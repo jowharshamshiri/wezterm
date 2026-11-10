@@ -8,7 +8,10 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
+use wezterm_term::color::ColorPalette;
+use wezterm_term::{Terminal, TerminalConfiguration, TerminalSize};
 
 pub const WAIT: Duration = Duration::from_secs(20);
 
@@ -192,6 +195,7 @@ impl Server {
             child,
             rx,
             screen: String::new(),
+            shown: None,
         }
     }
 }
@@ -229,6 +233,36 @@ pub struct Relay {
     rx: Receiver<Value>,
     /// Every `screen` event's data so far.
     pub screen: String,
+    /// A terminal showing what the relay painted for one pane, as the
+    /// program the relay serves would: made by the pane's `hello`, remade by
+    /// its `size` events.
+    shown: Option<Terminal>,
+}
+
+#[derive(Debug)]
+struct Shown;
+
+impl TerminalConfiguration for Shown {
+    fn color_palette(&self) -> ColorPalette {
+        ColorPalette::default()
+    }
+}
+
+fn terminal(event: &Value) -> Terminal {
+    let size = |field: &str| event[field].as_u64().unwrap() as usize;
+    Terminal::new(
+        TerminalSize {
+            cols: size("cols"),
+            rows: size("rows"),
+            pixel_width: 0,
+            pixel_height: 0,
+            dpi: 0,
+        },
+        Arc::new(Shown),
+        "relay-test",
+        "0",
+        Box::new(std::io::sink()),
+    )
 }
 
 impl Relay {
@@ -253,8 +287,19 @@ impl Relay {
                 .rx
                 .recv_timeout(left)
                 .unwrap_or_else(|_| panic!("no {what} event; the screen was {:?}", self.screen));
-            if event["t"] == "screen" {
-                self.screen.push_str(event["data"].as_str().unwrap());
+            // The screen of a single pane's relay, whose events name no pane.
+            if event.get("pane").is_none() {
+                match event["t"].as_str() {
+                    Some("hello") | Some("size") => self.shown = Some(terminal(&event)),
+                    Some("screen") => {
+                        let data = event["data"].as_str().unwrap();
+                        self.screen.push_str(data);
+                        if let Some(shown) = self.shown.as_mut() {
+                            shown.advance_bytes(data);
+                        }
+                    }
+                    _ => {}
+                }
             }
             if wanted(&event) {
                 return event;
@@ -262,14 +307,31 @@ impl Relay {
         }
     }
 
-    /// The next event, if one comes within `wait`.
-    pub fn next_within(&mut self, wait: Duration) -> Option<Value> {
-        self.rx.recv_timeout(wait).ok()
+    /// The lines a terminal shows after the relay's paints, without their
+    /// trailing blanks, joined with newlines.
+    pub fn shown(&self) -> String {
+        let Some(shown) = self.shown.as_ref() else {
+            return String::new();
+        };
+        let screen = shown.screen();
+        let rows = screen.physical_rows as i64;
+        screen
+            .lines_in_phys_range(screen.phys_range(&(0..rows)))
+            .iter()
+            .map(|line| line.as_str().trim_end().to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
-    pub fn expect_screen_containing(&mut self, text: &str) {
-        while !self.screen.contains(text) {
-            self.expect("screen");
+    /// Waits for paints after which a terminal shows `text`, however the
+    /// relay split them into frames.
+    pub fn expect_screen_showing(&mut self, text: &str) {
+        while !self.shown().contains(text) {
+            let shown = self.shown();
+            self.expect_where(
+                &format!("screen showing {text:?} (it shows {shown:?})"),
+                |e| e["t"] == "screen",
+            );
         }
     }
 }
