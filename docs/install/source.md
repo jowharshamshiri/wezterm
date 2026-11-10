@@ -22,6 +22,13 @@ $ cargo run --release --bin wsb-wezterm -- start
 **If you get an error about zlib then you most likely didn't initialize the submodules;
 take a closer look at the instructions!**
 
+A build names itself, as `wsb-wezterm --version` prints it, by the commit git
+describes. A source with no git, such as a copy of the files alone, names it
+in a file `.tag` at its top, holding what
+`git -c core.abbrev=8 show -s --format=%cd-%h --date=format:%Y%m%d-%H%M%S`
+prints for its commit. A source with neither is refused, rather than built
+without a name.
+
 To package the build for the platform you are on, run `ci/deploy.sh` from the
 root of the source tree after `cargo build --release -p wezterm -p wezterm-gui
 -p wezterm-mux-server -p strip-ansi-escapes`.

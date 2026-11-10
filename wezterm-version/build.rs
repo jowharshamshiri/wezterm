@@ -40,10 +40,24 @@ fn main() {
                 ])
                 .output()
             {
-                let info = String::from_utf8_lossy(&output.stdout);
-                ci_tag = info.trim().to_string();
+                if output.status.success() {
+                    let info = String::from_utf8_lossy(&output.stdout);
+                    ci_tag = info.trim().to_string();
+                }
             }
         }
+    }
+
+    // A build names itself by its tag; one that cannot is refused rather
+    // than built without a name.
+    if ci_tag.is_empty() {
+        eprintln!(
+            "wsb-wezterm cannot name this build: the source has no .tag at its top, \
+             and git cannot describe its HEAD. Build from a git checkout, or write \
+             the build's name to .tag (as `git -c core.abbrev=8 show -s \
+             --format=%cd-%h --date=format:%Y%m%d-%H%M%S` prints it)."
+        );
+        std::process::exit(1);
     }
 
     let target = std::env::var("TARGET").unwrap_or_else(|_| "unknown".to_string());

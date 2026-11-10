@@ -104,12 +104,16 @@ These affect a window attached to a mux server, such as with `wsb-wezterm connec
 - **A pane's resizes are sent one at a time, the latest size last.** Before, each one was sent on its own, unordered, and an earlier size could be the last one applied.
 - **Closing a window closes its tabs.** Closing a window whose tabs a server holds kills those tabs in the server, as closing each tab does. Before, it detached the window from the server's whole domain instead: every other window of that server disappeared with it, and the programs in all of them, the closed window's included, ran on. Quitting wsb-wezterm still leaves a server's programs running. A window wsb-wezterm fails to create still detaches its domain, so a failure ends no programs.
 
-Several of these change the multiplexer protocol (codec version 48): GUIs, servers and `wsb-wezterm cli` must be built from this fork alike.
+Several of these change the multiplexer protocol (codec version 49): GUIs, servers and `wsb-wezterm cli` must be built from this fork alike.
 
 ## Building
 
 [docs/install/source.md](docs/install/source.md) says how to build wsb-wezterm
 from source, and `ci/deploy.sh` packages a build for the platform it runs on.
+
+A build names itself by the commit git describes, or by `.tag` in a source
+without git; a source with neither is refused, rather than built without a
+name ([docs](docs/install/source.md)).
 
 ## Supporting WezTerm
 
