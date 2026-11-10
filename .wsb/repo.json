@@ -1,0 +1,10 @@
+{
+  "name": "wsb-wezterm",
+  "alias": "wsb_wezterm",
+  "templates_root": "../..",
+  "version": {
+    "major": 0,
+    "file": "version.txt",
+    "detect_manifests": true
+  }
+}
