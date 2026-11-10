@@ -86,7 +86,8 @@ event when that tab is gone.
 
 The events above are sent for each pane of the tab, each with a `pane` field
 naming it. `hello` comes when a pane enters the tab (or the relay starts),
-before its first `screen`. The relay also writes:
+before its first `screen`; its `sized_by_input` says whether `resize` events
+size the tab. The relay also writes:
 
 | `t` | Fields | Meaning |
 |---|---|---|

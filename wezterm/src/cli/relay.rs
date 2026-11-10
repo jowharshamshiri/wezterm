@@ -1100,7 +1100,7 @@ impl TabRelay {
             let mut relay = PaneRelay::new(
                 pane,
                 Some(pane_id),
-                false,
+                self.sized_by_input,
                 self.tx.clone(),
                 Rc::clone(&self.requests),
             )?;

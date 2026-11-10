@@ -507,6 +507,8 @@ fn a_tab_relay_follows_its_pane_to_another_tab_and_ends_with_its_tab() {
     split(&server, 1, &["--bottom"]);
     let mut relay = server.relay_with(&["--tab-of-pane", "1"]);
     relay.expect("layout");
+    let hello = relay.expect("hello");
+    assert_eq!(hello["sized_by_input"], false, "{hello}");
 
     // Pane 1 moves to a tab of its own: the panes it leaves are gone.
     server.cli(&["move-pane-to-new-tab", "--pane-id", "1"]);
@@ -534,6 +536,13 @@ fn a_tab_relay_takes_input_for_each_pane_and_sizes_the_tab() {
     split(&server, 0, &["--right"]);
     let mut relay = server.relay_with(&["--tab-of-pane", "0", "--sized-by-input"]);
     relay.expect("layout");
+    // Each pane's hello says the relay's resizes size the tab.
+    for pane in [0, 1] {
+        let hello = relay.expect_where(&format!("hello for pane {pane}"), |e| {
+            e["t"] == "hello" && e["pane"] == pane
+        });
+        assert_eq!(hello["sized_by_input"], true, "{hello}");
+    }
     relay.send(json!({"t": "text", "text": "hi", "pane": 1}));
     relay.send(json!({"t": "key", "key": "Enter", "pane": 1}));
     server.wait_for_text(1, "hi\nhi");
