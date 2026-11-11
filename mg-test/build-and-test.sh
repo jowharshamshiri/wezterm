@@ -21,7 +21,7 @@ die() { say "$*" >&2; exit 1; }
 say "building $(cat .tag)"
 
 # What installing QuickRust needs and an image may not have.
-for tool in curl python3; do
+for tool in curl jq; do
     command -v "$tool" >/dev/null 2>&1 && continue
     sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=600 update -qq \
         || die "apt-get update failed"
@@ -45,15 +45,13 @@ if ! [ -x "$QRUST_HOME/bin/qrust" ]; then
     scratch="$(mktemp -d)"
     curl -fsSL https://release.machinefabric.com/quickrust/manifest -o "$scratch/manifest" \
         || die "the QuickRust release manifest could not be fetched"
-    read -r url sha size < <(python3 - "$scratch/manifest" "$platform" <<'PY'
-import json, sys
-release = json.load(open(sys.argv[1]))["channels"]["release"]
-build = release["versions"][release["latestVersion"]]["platforms"].get(sys.argv[2])
-if not build:
-    sys.exit(f"QuickRust {release['latestVersion']} has no {sys.argv[2]} build")
-archive = next(i for i in build["installers"] if i["type"] == "targz")
-print(archive["path"], archive["sha256"], archive["size"])
-PY
+    read -r url sha size < <(jq -r --arg platform "$platform" '
+        .channels.release as $release
+        | $release.versions[$release.latestVersion].platforms[$platform]
+            // error("QuickRust \($release.latestVersion) has no \($platform) build")
+        | [.installers[] | select(.type == "targz")][0]
+            // error("QuickRust \($release.latestVersion) has no archive for \($platform)")
+        | "\(.path) \(.sha256) \(.size)"' "$scratch/manifest"
 ) || die "the QuickRust manifest names no archive for $platform"
     say "installing QuickRust from $url"
     curl -fsSL "$url" -o "$scratch/qrust.tar.gz" || die "the QuickRust archive could not be fetched"
