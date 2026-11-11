@@ -3,8 +3,14 @@
   "alias": "wsb_wezterm",
   "templates_root": "../..",
   "version": {
-    "major": 0,
+    "major": 1,
     "file": "version.txt",
-    "detect_manifests": true
+    "detect_manifests": true,
+    "third_party_submodules": [
+      "deps/freetype/freetype2",
+      "deps/freetype/libpng",
+      "deps/freetype/zlib",
+      "deps/harfbuzz/harfbuzz"
+    ]
   }
 }
