@@ -163,3 +163,44 @@ fn a_relay_whose_input_ends_delivers_what_it_was_given_first_in_order() {
         std::thread::sleep(Duration::from_millis(50));
     }
 }
+
+/// A server whose pane, once `go` exists in the returned folder, copies
+/// "héllo 日本 ✓" to the clipboard with OSC 52 ended by ST, then prints
+/// "copied".
+fn copying_server() -> (tempfile::TempDir, Server) {
+    let dir = tempfile::tempdir().unwrap();
+    let script = format!(
+        "printf ready; while [ ! -e '{}' ]; do sleep 0.05; done; \
+         printf '\\033]52;c;aMOpbGxvIOaXpeacrCDinJM=\\033\\\\copied'; sleep 60",
+        dir.path().join("go").display()
+    );
+    let server = Server::running(&["sh", "-c", &script]);
+    (dir, server)
+}
+
+#[test]
+fn a_relay_passes_on_its_pane_s_clipboard_copy() {
+    let (dir, server) = copying_server();
+    let pane = server.panes()[0]["pane_id"].as_u64().unwrap();
+    server.wait_for_text(pane, "ready");
+    let mut relay = server.relay(pane, &[]);
+    relay.expect("hello");
+    std::fs::write(dir.path().join("go"), "").unwrap();
+    let copy = relay.expect("clipboard");
+    assert_eq!(copy, json!({"t": "clipboard", "text": "héllo 日本 ✓"}));
+}
+
+#[test]
+fn a_tab_s_relay_passes_on_a_pane_s_clipboard_copy_naming_the_pane() {
+    let (dir, server) = copying_server();
+    let pane = server.panes()[0]["pane_id"].as_u64().unwrap();
+    server.wait_for_text(pane, "ready");
+    let mut relay = server.relay_with(&["--tab-of-pane", &pane.to_string()]);
+    relay.expect("layout");
+    std::fs::write(dir.path().join("go"), "").unwrap();
+    let copy = relay.expect("clipboard");
+    assert_eq!(
+        copy,
+        json!({"t": "clipboard", "text": "héllo 日本 ✓", "pane": pane})
+    );
+}
