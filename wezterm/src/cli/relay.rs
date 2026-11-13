@@ -1228,7 +1228,7 @@ fn cursor_on_screen(
 #[cfg(test)]
 mod test {
     use super::*;
-    use termwiz::cell::Intensity;
+    use termwiz::cell::{Cell, Intensity};
 
     fn line(text: &str) -> Line {
         Line::from_text(text, &CellAttributes::blank(), 0, None)
@@ -1247,20 +1247,32 @@ mod test {
         })
     }
 
-    /// What a terminal of this size shows after these escapes.
-    fn shown(cols: usize, rows: usize, escapes: &[String]) -> Vec<String> {
+    /// A terminal of this size after these escapes. Like a terminal, it
+    /// takes text printed one character after another as one string, so
+    /// characters that make one grapheme together share a cell, and any
+    /// escape between them keeps them apart.
+    fn painted(cols: usize, rows: usize, escapes: &[String]) -> Surface {
         let mut parser = termwiz::escape::parser::Parser::new();
         let mut surface = Surface::new(cols, rows);
+        let mut printed = String::new();
         for data in escapes {
             parser.parse(data.as_bytes(), |action| {
                 use termwiz::escape::Action;
                 match action {
                     Action::Print(c) => {
-                        surface.add_change(Change::Text(c.to_string()));
+                        printed.push(c);
+                        return;
                     }
                     Action::PrintString(s) => {
-                        surface.add_change(Change::Text(s));
+                        printed.push_str(&s);
+                        return;
                     }
+                    _ => {}
+                }
+                if !printed.is_empty() {
+                    surface.add_change(Change::Text(std::mem::take(&mut printed)));
+                }
+                match action {
                     Action::CSI(termwiz::escape::CSI::Cursor(
                         termwiz::escape::csi::Cursor::Position { line, col },
                     )) => {
@@ -1283,7 +1295,15 @@ mod test {
                 }
             });
         }
+        if !printed.is_empty() {
+            surface.add_change(Change::Text(printed));
+        }
         surface
+    }
+
+    /// What a terminal of this size shows after these escapes.
+    fn shown(cols: usize, rows: usize, escapes: &[String]) -> Vec<String> {
+        painted(cols, rows, escapes)
             .screen_lines()
             .iter()
             .map(|l| l.as_str().trim_end().to_string())
@@ -1349,6 +1369,44 @@ mod test {
         let first = screen.update(vec![line("ab")], at(0, 0)).unwrap();
         let second = screen.update(vec![line("中x")], at(3, 0)).unwrap();
         assert_eq!(shown(6, 1, &[first, second]), vec!["中x"]);
+    }
+
+    #[test]
+    fn each_grapheme_is_shown_in_the_cell_the_pane_holds_it_in() {
+        // A program wrote an emoji and a skin tone modifier in cells of their
+        // own, as one that counts widths by character does: the pane holds
+        // both, two cells each. A terminal reading their text one after the
+        // other would make one emoji of them, and draw what follows two cells
+        // early.
+        let mut pane = Line::with_width(8, 0);
+        pane.set_cell(
+            0,
+            Cell::new_grapheme_with_width("👍", 2, CellAttributes::blank()),
+            0,
+        );
+        pane.set_cell(
+            2,
+            Cell::new_grapheme_with_width("🏽", 2, CellAttributes::blank()),
+            0,
+        );
+        pane.set_cell(4, Cell::new('|', CellAttributes::blank()), 0);
+        let mut screen = Screen::new(8, 1);
+        let data = screen.update(vec![pane], at(5, 0)).unwrap();
+
+        let terminal = painted(8, 1, &[data]);
+        let cells: Vec<(usize, String)> = terminal.screen_lines()[0]
+            .visible_cells()
+            .filter(|cell| cell.str() != " ")
+            .map(|cell| (cell.cell_index(), cell.str().to_string()))
+            .collect();
+        assert_eq!(
+            cells,
+            vec![
+                (0, "👍".to_string()),
+                (2, "🏽".to_string()),
+                (4, "|".to_string())
+            ]
+        );
     }
 
     #[test]
