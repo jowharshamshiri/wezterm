@@ -201,6 +201,12 @@ impl ClientPane {
         size: TerminalSize,
     ) -> anyhow::Result<impl Future<Output = anyhow::Result<()>> + 'static> {
         self.resize(size)?;
+        Ok(self.resizes_sent())
+    }
+
+    /// Ends once no size asked of the pane is left to send to the server,
+    /// with why the last request failed if it did: at once when none is.
+    pub fn resizes_sent(&self) -> impl Future<Output = anyhow::Result<()>> + 'static {
         let waiting = {
             let mut resizes = self.resizes.lock();
             if resizes.in_flight {
@@ -211,7 +217,7 @@ impl ClientPane {
                 None
             }
         };
-        Ok(async move {
+        async move {
             match waiting {
                 None => Ok(()),
                 Some(rx) => rx
@@ -220,7 +226,7 @@ impl ClientPane {
                     .map_err(|_| anyhow::anyhow!("the client stopped resizing the pane"))?
                     .map_err(anyhow::Error::msg),
             }
-        })
+        }
     }
 
     pub fn new(

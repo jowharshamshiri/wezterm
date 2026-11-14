@@ -101,7 +101,25 @@ its other panes.
 Every event the relay reads names its pane with a `pane` field, except
 `resize`: a `resize` without `pane` sizes the whole tab, as a GUI window of
 that size would, and only with `--sized-by-input`. A pane's own size comes
-from the tab's layout, so a `resize` naming a pane is refused.
+from the tab's layout, so a `resize` naming a pane is refused. A tab's resize
+counts as sent once the multiplexer has taken every pane's new size, so a
+relay whose input ends after a `resize` stops only once the tab has that
+size.
+
+### Following a tab's layout
+
+With `--layout-only` as well, the relay sends only the tab's `layout` events,
+and `exit` when the tab is gone: no pane's `hello`, `screen` or other events.
+Its input takes only a `resize` of the tab (with `--sized-by-input`); an
+event naming a pane is refused. A program that keeps a record of a tab's
+layout runs it for as long as it keeps the record, and closes its stdin to
+end it.
+
+```console
+$ wsb-wezterm cli relay --tab-of-pane 0 --layout-only
+{"t":"layout","tab":{"tab_id":0,"window_id":0,"cols":80,"rows":24,"active":0,"zoomed":null,"root":{"pane":{...}}}}
+{"t":"layout","tab":{"tab_id":0,"window_id":0,"cols":80,"rows":24,"active":1,"zoomed":null,"root":{"split":{...}}}}
+```
 
 ```console
 $ wsb-wezterm cli relay --tab-of-pane 0

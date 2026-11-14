@@ -594,3 +594,74 @@ fn a_tab_relay_takes_input_for_each_pane_and_sizes_the_tab() {
     });
     assert_eq!(resized["tab"], layout(&server, 0));
 }
+
+#[test]
+fn a_tab_relay_whose_input_ends_has_sized_the_tab_first() {
+    // A program sizing a tab writes one resize and closes the relay's input:
+    // the relay ends only once the server has given the tab that size, for a
+    // tab of one pane, of one split and of a split within a split.
+    for (splits, sized) in [
+        (&[][..], "0:160x48@0,0"),
+        (&[(0, "--right")][..], "(0:79x48@0,0 | 1:80x48@80,0)"),
+        (
+            &[(0, "--right"), (1, "--bottom")][..],
+            "(0:79x48@0,0 | (1:80x23@80,0 / 2:80x24@80,24))",
+        ),
+    ] {
+        let server = server();
+        for (pane, side) in splits {
+            split(&server, *pane, &[side]);
+        }
+        server.cli_with_input(
+            &["relay", "--tab-of-pane", "0", "--sized-by-input"],
+            "{\"t\":\"resize\",\"cols\":160,\"rows\":48}\n",
+        );
+        let tab = layout(&server, 0);
+        assert_eq!(
+            (
+                tab["cols"].as_u64(),
+                tab["rows"].as_u64(),
+                shape(&tab["root"])
+            ),
+            (Some(160), Some(48), sized.to_string()),
+            "{tab}"
+        );
+    }
+}
+
+#[test]
+fn a_layout_only_relay_sends_the_tabs_layout_as_it_changes_and_no_pane() {
+    let server = server();
+    let mut relay = server.relay_with(&["--tab-of-pane", "0", "--layout-only"]);
+    // Every event is the tab's layout, or the error an input line earns.
+    let layout_shaped = |relay: &mut Relay, wanted: &str| {
+        relay.expect_where(&format!("a layout of {wanted}"), |event| {
+            assert!(
+                event["t"] == "layout" || event["t"] == "error",
+                "a layout-only relay sent {event}"
+            );
+            event["t"] == "layout" && shape(&event["tab"]["root"]) == wanted
+        })
+    };
+    layout_shaped(&mut relay, "0:80x24@0,0");
+    split(&server, 0, &["--right", "--cells", "30"]);
+    layout_shaped(&mut relay, "(0:49x24@0,0 | 1:30x24@50,0)");
+    split(&server, 1, &["--bottom", "--cells", "10"]);
+    let nested = layout_shaped(&mut relay, "(0:49x24@0,0 | (1:30x13@50,0 / 2:30x10@50,14))");
+    assert_eq!(nested["tab"], layout(&server, 0));
+    server.cli(&["kill-pane", "--pane-id", "2"]);
+    layout_shaped(&mut relay, "(0:49x24@0,0 | 1:30x24@50,0)");
+
+    relay.send(json!({"t": "text", "text": "x", "pane": 0}));
+    let err = relay.expect("error");
+    assert!(
+        err["message"]
+            .as_str()
+            .unwrap()
+            .contains("a layout-only relay relays no pane"),
+        "{err}"
+    );
+    // Its input ending ends it.
+    drop(relay.stdin.take());
+    assert!(relay.child.wait().unwrap().success());
+}

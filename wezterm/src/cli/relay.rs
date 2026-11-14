@@ -82,6 +82,12 @@ pub struct RelayCommand {
     /// and `resize` is refused.
     #[arg(long = "sized-by-input")]
     sized_by_input: bool,
+
+    /// With `--tab-of-pane`: relay only the tab's layout, each time it
+    /// changes, and no pane: no `hello` or `screen`, and input takes only a
+    /// `resize` of the tab.
+    #[arg(long = "layout-only", requires = "tab_of_pane")]
+    layout_only: bool,
 }
 
 /// Run the relay until stdin ends or the pane does. It runs on its own
@@ -650,6 +656,7 @@ async fn relay<W: Write>(
                     panes: BTreeMap::new(),
                     domain: Arc::clone(&domain),
                     client,
+                    layout_only: cmd.layout_only,
                     sized_by_input: cmd.sized_by_input,
                     tx,
                     requests: Rc::clone(&requests),
@@ -1015,6 +1022,9 @@ struct TabRelay {
     domain: Arc<ClientDomain>,
     client: Client,
     sized_by_input: bool,
+    /// Only the layout is relayed: the panes are neither mirrored nor
+    /// greeted.
+    layout_only: bool,
     tx: smol::channel::Sender<Event>,
     requests: Rc<Requests>,
     /// A listing of the multiplexer's panes is on its way.
@@ -1083,6 +1093,9 @@ impl TabRelay {
             })?;
             self.layout = Some(layout);
         }
+        if self.layout_only {
+            return Ok(Flow::Continue);
+        }
         let mux = Mux::get();
         for pane_id in ids {
             if self.panes.contains_key(&pane_id) {
@@ -1110,7 +1123,10 @@ impl TabRelay {
         Ok(Flow::Continue)
     }
 
-    /// Sizes the whole tab, as a GUI window of that size would.
+    /// Sizes the whole tab, as a GUI window of that size would. The mirror
+    /// shares the size out among its panes and asks the server for each
+    /// pane's; every pane's requests are queued, so a relay whose input ends
+    /// sends them all before it stops.
     fn resize(&self, cols: usize, rows: usize) -> anyhow::Result<()> {
         if !self.sized_by_input {
             bail!("this relay does not size its tab; start it with --sized-by-input");
@@ -1132,6 +1148,17 @@ impl TabRelay {
             pixel_height: 0,
             dpi: size.dpi,
         });
+        for positioned in tab.iter_panes_ignoring_zoom() {
+            let pane_id = positioned.pane.pane_id();
+            let client_pane = positioned
+                .pane
+                .downcast_ref::<ClientPane>()
+                .ok_or_else(|| anyhow!("pane {pane_id} of the relay's mirror is not a client's"))?;
+            self.requests.request(
+                format!("a resize of the tab to {cols}x{rows}"),
+                client_pane.resizes_sent(),
+            )?;
+        }
         Ok(())
     }
 }
@@ -1154,7 +1181,7 @@ impl<W: Write> Relaying<W> for TabRelay {
                     relay.poll();
                 }
                 let known = self.layout.as_ref().map(|layout| layout.pane_ids().len());
-                if known != Some(self.panes.len()) {
+                if !self.layout_only && known != Some(self.panes.len()) {
                     self.list();
                 }
             }
@@ -1192,6 +1219,9 @@ impl<W: Write> Relaying<W> for TabRelay {
             serde_json::from_value(value).context("an input line is not a relay event")?;
         match (pane, input) {
             (None, In::Resize { cols, rows }) => self.resize(cols, rows),
+            (Some(_), _) if self.layout_only => bail!(
+                "a layout-only relay relays no pane; its input takes only a resize of the tab"
+            ),
             (None, _) => bail!(
                 "a tab relay's events name their \"pane\"; only a resize of the whole tab \
                  names none"
