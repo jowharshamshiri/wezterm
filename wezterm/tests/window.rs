@@ -56,7 +56,7 @@ fn xdotool(display: &str, args: &[&str]) -> String {
 fn a_window_sizes_the_tabs_of_the_workspace_it_shows_as_a_whole_and_a_relay_does_not() {
     let display = display();
     let server = Server::sized(80, 24, &["cat"]);
-    // The overseers' side panel: split right, its right side split down.
+    // A side panel: a pane split right, its right side split down.
     split(&server, 0, &["--right", "--cells", "30"]);
     split(&server, 1, &["--bottom"]);
     let elsewhere: u64 = server

@@ -612,7 +612,7 @@ fn a_tab_relay_whose_input_ends_has_sized_the_tab_first() {
 
 #[test]
 fn a_pane_of_a_tab_with_others_is_not_resized_alone() {
-    // The owner's side panel: a pane split right at 32 cells, its right side
+    // A side panel: a pane split right at 32 cells, its right side
     // split down. Resizing pane 0 alone used to give it the size while its
     // tab kept the rest, which then did not add up: a 120x48 split of pane 0
     // at 87x48 and a right side of 32x24. The tab's layout sizes its panes,
