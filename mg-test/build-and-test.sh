@@ -2,7 +2,7 @@
 # On a Linux guest: builds wsb-wezterm, wsb-wezterm-gui and
 # wsb-wezterm-mux-server with QuickRust, then runs the tests of the
 # multiplexer, its protocol and the command line, which drive a real
-# multiplexer server.
+# multiplexer server, and a window of the GUI on a virtual X display (Xvfb).
 #
 # Every step runs even when an earlier one failed, and the task fails when
 # any did.
@@ -87,6 +87,18 @@ run() {
     fi
     grep -E "^test result:|^error|FAILED|panicked|Finished" "$logs/$name.log" | tail -n 40
 }
+
+# The window tests show a GUI window on a display of their own and resize
+# it with xdotool.
+say "installing Xvfb and xdotool"
+sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=600 install -y -qq xvfb xdotool \
+    || die "Xvfb and xdotool could not be installed"
+Xvfb :97 -screen 0 1600x1000x24 -nolisten tcp >"$logs/xvfb.log" 2>&1 &
+xvfb=$!
+trap 'kill "$xvfb" 2>/dev/null' EXIT
+for _ in $(seq 50); do [ -e /tmp/.X11-unix/X97 ] && break; sleep 0.1; done
+[ -e /tmp/.X11-unix/X97 ] || die "Xvfb did not start (out/logs/xvfb.log)"
+export WSB_WEZTERM_TEST_DISPLAY=:97
 
 run build cargo build -p wezterm -p wezterm-gui -p wezterm-mux-server
 run test cargo test --no-fail-fast -p mux -p codec -p wezterm -p wezterm-client -p wezterm-mux-server-impl

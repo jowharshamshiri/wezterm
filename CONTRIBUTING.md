@@ -105,6 +105,17 @@ You can run the existing tests using:
 $ cargo test --all
 ```
 
+The tests in `wezterm/tests` drive a real `wsb-wezterm-mux-server`, so build
+it, and the GUI, first: `cargo build -p wezterm -p wezterm-gui -p
+wezterm-mux-server`. Those in `wezterm/tests/window.rs` show a GUI window on
+the X display named by `WSB_WEZTERM_TEST_DISPLAY` and resize it with
+`xdotool`; a virtual display will do:
+
+```console
+$ Xvfb :97 -screen 0 1600x1000x24 -nolisten tcp &
+$ WSB_WEZTERM_TEST_DISPLAY=:97 cargo test -p wezterm --test window
+```
+
 There are some helper classes for writing tests for terminal behavior.
 Here's [an example of a test to verify that the terminal contents
 match expectations](https://github.com/wezterm/wezterm/blob/fd532a8c2fb3b56593597cf8be1775da1feda0a3/term/src/test/mod.rs#L314).

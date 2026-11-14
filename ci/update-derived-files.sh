@@ -51,6 +51,7 @@ for cmd in \
     relay \
     rename-workspace \
     resize-split \
+    resize-tab \
     send-keys \
     send-text \
     set-layout \

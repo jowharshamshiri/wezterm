@@ -51,6 +51,23 @@ struct TabInner {
     /// pane can change them.
     vars: BTreeMap<String, String>,
     recency: Recency,
+    /// The server's tab this tab mirrors, which takes its size and dividers.
+    mirror: Option<Arc<dyn TabMirror>>,
+}
+
+/// The tab of a multiplexer server that a client's tab mirrors. The server
+/// holds the tab's layout: a size or a divider asked of the mirror is asked
+/// of the server as one operation on the whole tab, never as a size for each
+/// pane, and the mirror and its panes take the server's layout and sizes
+/// from its updates. The mirror shows the change at once, sized as the
+/// server will size it from the same layout.
+pub trait TabMirror: Send + Sync {
+    /// Asks the server to size its tab `size` (`ResizeTab`).
+    fn resize(&self, size: TerminalSize);
+    /// Asks the server to give the first part of the split whose divider is
+    /// to the right of (`Horizontal`) or below (`Vertical`) `pane`
+    /// `first_cells` cells (`ResizeSplit`).
+    fn resize_split(&self, pane: &Arc<dyn Pane>, direction: SplitDirection, first_cells: usize);
 }
 
 /// A Tab is a container of Panes
@@ -883,23 +900,17 @@ impl Tab {
         self.inner.lock().resize(size)
     }
 
-    /// Called when running in the mux server after an individual pane
-    /// has been resized.
-    /// Because the split manipulation happened on the GUI we "lost"
-    /// the information that would have allowed us to call resize_split_by()
-    /// and instead need to back-infer the split size information.
-    /// We rely on the client to have resized (or be in the process
-    /// of resizing) affected panes consistently with its own Tab
-    /// tree model.
-    /// This method does a simple tree walk to the leaves to back-propagate
-    /// the size of the panes up to their containing node split data.
-    /// Without this step, disconnecting and reconnecting would cause
-    /// the GUI to use stale size information for the window it spawns
-    /// to attach this tab.
-    pub fn rebuild_splits_sizes_from_contained_panes(&self) {
-        self.inner
-            .lock()
-            .rebuild_splits_sizes_from_contained_panes()
+    /// Makes this tab the mirror of a server's tab (`TabMirror`): from now
+    /// on its size and dividers are asked of the server.
+    pub fn set_mirror(&self, mirror: Arc<dyn TabMirror>) {
+        self.inner.lock().mirror.replace(mirror);
+    }
+
+    /// The fewest columns and rows the tab's layout fits in: one per pane,
+    /// and one per divider between them.
+    pub fn min_size(&self) -> (usize, usize) {
+        let inner = self.inner.lock();
+        compute_min_size(inner.pane.as_ref().expect("a tab has its tree"))
     }
 
     /// Given split_index, the topological index of a split returned by
@@ -1085,6 +1096,7 @@ impl TabInner {
             title: String::new(),
             vars: BTreeMap::new(),
             recency: Recency::default(),
+            mirror: None,
         }
     }
 
@@ -1223,7 +1235,7 @@ impl TabInner {
                 pane.set_zoomed(false);
             }
             self.size = self.size_before_zoom;
-            self.resize(size);
+            self.resize_here(size);
         } else {
             // We weren't zoomed, but now we want to zoom.
             // Locate the active pane
@@ -1462,7 +1474,21 @@ impl TabInner {
         self.size
     }
 
+    /// Resizes the tab, and asks the server for that size when the tab
+    /// mirrors one.
     fn resize(&mut self, size: TerminalSize) {
+        if size.rows == 0 || size.cols == 0 {
+            // Ignore "impossible" resize requests
+            return;
+        }
+        self.resize_here(size);
+        if let Some(mirror) = &self.mirror {
+            mirror.resize(self.size);
+        }
+    }
+
+    /// Resizes the tab and its panes, here only.
+    fn resize_here(&mut self, size: TerminalSize) {
         if size.rows == 0 || size.cols == 0 {
             // Ignore "impossible" resize requests
             return;
@@ -1541,49 +1567,6 @@ impl TabInner {
         }
     }
 
-    fn rebuild_splits_sizes_from_contained_panes(&mut self) {
-        if self.zoomed.is_some() {
-            return;
-        }
-
-        fn compute_size(node: &mut Tree) -> Option<TerminalSize> {
-            match node {
-                Tree::Empty => None,
-                Tree::Leaf(pane) => {
-                    let dims = pane.get_dimensions();
-                    let size = TerminalSize {
-                        cols: dims.cols,
-                        rows: dims.viewport_rows,
-                        pixel_height: dims.pixel_height,
-                        pixel_width: dims.pixel_width,
-                        dpi: dims.dpi,
-                    };
-                    Some(size)
-                }
-                Tree::Node { left, right, data } => {
-                    if let Some(data) = data {
-                        if let Some(first) = compute_size(left) {
-                            data.first = first;
-                        }
-                        if let Some(second) = compute_size(right) {
-                            data.second = second;
-                        }
-                        Some(data.size())
-                    } else {
-                        None
-                    }
-                }
-            }
-        }
-
-        if let Some(root) = self.pane.as_mut() {
-            if let Some(size) = compute_size(root) {
-                self.size = size;
-            }
-        }
-        self.layout_changed();
-    }
-
     /// Tells the mux's subscribers the tab's layout changed.
     fn layout_changed(&self) {
         if let Some(mux) = Mux::try_get() {
@@ -1606,8 +1589,43 @@ impl TabInner {
             .clamp(*range.start() as isize, *range.end() as isize) as usize;
         if moved != first {
             set_first_part(split, moved, &cell);
+            self.divider_moved(path);
             self.layout_changed();
         }
+    }
+
+    /// Asks the server for the divider of the split at `path` where it now
+    /// is, when this tab mirrors one: through the pane nearest the divider
+    /// in the split's first part, the last of it, whose nearest split of that
+    /// direction with it in the first part is this one.
+    fn divider_moved(&self, path: &[Branch]) {
+        let Some(mirror) = &self.mirror else {
+            return;
+        };
+        let Some(split) = self.pane.as_ref().and_then(|root| subtree(root, path)) else {
+            return;
+        };
+        let Tree::Node {
+            left,
+            data: Some(data),
+            ..
+        } = split
+        else {
+            return;
+        };
+        let mut nearest: &Tree = left;
+        let pane = loop {
+            match nearest {
+                Tree::Node { right, .. } => nearest = right,
+                Tree::Leaf(pane) => break pane,
+                Tree::Empty => return,
+            }
+        };
+        mirror.resize_split(
+            pane,
+            data.direction,
+            Axis::of(data.direction).cells(&data.first),
+        );
     }
 
     fn resize_split_by(&mut self, split_index: usize, delta: isize) {
@@ -1683,6 +1701,8 @@ impl TabInner {
             );
         }
         set_first_part(split, first, &cell);
+        let path = path[..at].to_vec();
+        self.divider_moved(&path);
         self.layout_changed();
         Ok(())
     }
@@ -2361,9 +2381,9 @@ impl TabInner {
                 // match the target size; it's easier to reuse
                 // existing resize logic that way
                 if request.target_is_second {
-                    self.resize(split_info.first.clone());
+                    self.resize_here(split_info.first);
                 } else {
-                    self.resize(split_info.second.clone());
+                    self.resize_here(split_info.second);
                 }
             }
 

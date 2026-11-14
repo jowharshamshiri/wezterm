@@ -1,0 +1,10 @@
+Size a tab as a whole: the multiplexer shares the size out among its panes by the tab's layout. Prints {"sized_by_window":null} once the tab has the size; where a desktop window sizes the tab, prints the rule and each window as {"sized_by_window":"..."}, leaves the tab as it is, and exits with status 3
+
+Usage: wsb-wezterm cli resize-tab [OPTIONS] --cols <COLS> --rows <ROWS>
+
+Options:
+      --tab-id <TAB_ID>    The tab to resize. The default is the tab of `--pane-id`
+      --pane-id <PANE_ID>  Resize the tab that holds this pane. The default is the current pane, from the environment variable WSB_WEZTERM_PANE
+      --cols <COLS>        The columns the tab gets
+      --rows <ROWS>        The rows the tab gets
+  -h, --help               Print help

@@ -201,6 +201,35 @@ impl Server {
 }
 
 impl Server {
+    /// A wsb-wezterm window on the X display `display`, attached to this
+    /// server (`wsb-wezterm connect`), its terminal `cols` by `rows` cells to
+    /// start with. It shows the default workspace.
+    pub fn window(&self, display: &str, cols: usize, rows: usize) -> Window {
+        let config = self.dir.path().join("window.lua");
+        std::fs::write(
+            &config,
+            format!(
+                "return {{ unix_domains = {{ {{ name = 't', socket_path = '{}' }} }}, \
+                 initial_cols = {cols}, initial_rows = {rows} }}\n",
+                self.socket.display()
+            ),
+        )
+        .unwrap();
+        let mut command = Command::new(env!("CARGO_BIN_EXE_wsb-wezterm"));
+        command
+            .arg("--config-file")
+            .arg(&config)
+            .args(["connect", "t"]);
+        let child = Self::environment(&mut command, self.dir.path(), &self.socket, &config)
+            .env("DISPLAY", display)
+            .env_remove("WAYLAND_DISPLAY")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        Window { child }
+    }
+
     /// Wait until the pane shows `text`.
     pub fn wait_for_text(&self, pane: u64, text: &str) {
         let deadline = Instant::now() + WAIT;
@@ -225,6 +254,29 @@ impl Drop for Server {
         self.child.kill().ok();
         self.child.wait().ok();
     }
+}
+
+/// A wsb-wezterm window, ended with the test.
+pub struct Window {
+    pub child: Child,
+}
+
+impl Drop for Window {
+    fn drop(&mut self) {
+        self.child.kill().ok();
+        self.child.wait().ok();
+    }
+}
+
+/// The X display a test with a window shows it on, `WSB_WEZTERM_TEST_DISPLAY`
+/// (a virtual one, such as an Xvfb's, will do).
+pub fn display() -> String {
+    std::env::var("WSB_WEZTERM_TEST_DISPLAY").unwrap_or_else(|_| {
+        panic!(
+            "WSB_WEZTERM_TEST_DISPLAY is not set: name the X display a wsb-wezterm window \
+             is shown on, such as :97 of an Xvfb"
+        )
+    })
 }
 
 pub struct Relay {
@@ -341,4 +393,125 @@ impl Drop for Relay {
         self.child.kill().ok();
         self.child.wait().ok();
     }
+}
+
+/// The layout of the tab holding `pane`, as `get-layout` prints it, without
+/// `sized_by_window` ([`sized_by_window`]): as a relay's layout event has it.
+pub fn layout(server: &Server, pane: u64) -> Value {
+    let mut shown = get_layout(server, pane);
+    let said = shown.as_object_mut().unwrap().remove("sized_by_window");
+    assert!(
+        said.is_some(),
+        "get-layout says whether a window sizes the tab: {}",
+        shown
+    );
+    shown
+}
+
+/// What `get-layout` prints for the tab holding `pane`.
+pub fn get_layout(server: &Server, pane: u64) -> Value {
+    serde_json::from_str(&server.cli(&["get-layout", "--pane-id", &pane.to_string()])).unwrap()
+}
+
+/// Whether a desktop window sizes the tab holding `pane`, as `get-layout`
+/// says it: the rule and each window, or null.
+pub fn sized_by_window(server: &Server, pane: u64) -> Value {
+    get_layout(server, pane)["sized_by_window"].clone()
+}
+
+/// Checks that each split of the tab `tab` (a layout) is filled by its first
+/// part, the one-cell divider and its second part, with every part where the
+/// split puts it: a tab resized pane by pane, half way, does not add up.
+pub fn assert_fills(tab: &Value) {
+    fn fills(node: &Value, left: u64, top: u64, cols: u64, rows: u64, tab: &Value) {
+        let (place, split) = match node.get("pane") {
+            Some(pane) => (pane, None),
+            None => (&node["split"], Some(&node["split"])),
+        };
+        let at = |field: &str| place[field].as_u64().unwrap();
+        assert_eq!(
+            (at("left"), at("top"), at("cols"), at("rows")),
+            (left, top, cols, rows),
+            "{} is not where its split puts it in {tab}",
+            shape(node)
+        );
+        let Some(split) = split else {
+            return;
+        };
+        let first = |field: &str| {
+            let first = &split["first"];
+            first.get("pane").unwrap_or(&first["split"])[field]
+                .as_u64()
+                .unwrap()
+        };
+        if split["direction"] == "horizontal" {
+            let first_cols = first("cols");
+            assert!(
+                first_cols + 1 < cols,
+                "{} leaves no second part in {tab}",
+                shape(node)
+            );
+            fills(&split["first"], left, top, first_cols, rows, tab);
+            fills(
+                &split["second"],
+                left + first_cols + 1,
+                top,
+                cols - first_cols - 1,
+                rows,
+                tab,
+            );
+        } else {
+            let first_rows = first("rows");
+            assert!(
+                first_rows + 1 < rows,
+                "{} leaves no second part in {tab}",
+                shape(node)
+            );
+            fills(&split["first"], left, top, cols, first_rows, tab);
+            fills(
+                &split["second"],
+                left,
+                top + first_rows + 1,
+                cols,
+                rows - first_rows - 1,
+                tab,
+            );
+        }
+    }
+    let side = |field: &str| tab[field].as_u64().unwrap();
+    fills(&tab["root"], 0, 0, side("cols"), side("rows"), tab);
+}
+
+/// A tree in short: a pane as `id:COLSxROWS@LEFT,TOP`, a horizontal split as
+/// `(first | second)`, a vertical one as `(first / second)`.
+pub fn shape(node: &Value) -> String {
+    if let Some(pane) = node.get("pane") {
+        return format!(
+            "{}:{}x{}@{},{}",
+            pane["id"], pane["cols"], pane["rows"], pane["left"], pane["top"]
+        );
+    }
+    let split = &node["split"];
+    let divider = match split["direction"].as_str().unwrap() {
+        "horizontal" => "|",
+        "vertical" => "/",
+        other => panic!("a split's direction is {:?}", other),
+    };
+    format!(
+        "({} {divider} {})",
+        shape(&split["first"]),
+        shape(&split["second"])
+    )
+}
+
+/// The shape of the tab holding `pane`.
+pub fn tab_shape(server: &Server, pane: u64) -> String {
+    shape(&layout(server, pane)["root"])
+}
+
+/// Splits `pane` with `args`, returning the new pane.
+pub fn split(server: &Server, pane: u64, args: &[&str]) -> u64 {
+    let pane = pane.to_string();
+    let out = server.cli(&[&["split-pane", "--pane-id", &pane], args].concat());
+    out.trim().parse().unwrap()
 }

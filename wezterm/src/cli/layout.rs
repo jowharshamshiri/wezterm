@@ -241,6 +241,17 @@ pub async fn read_layout(client: &Client, tab_id: TabId) -> anyhow::Result<TabLa
         .ok_or_else(|| anyhow!("there is no tab {tab_id}"))
 }
 
+/// Whether a desktop window sizes the tab `tab_id`, as the multiplexer says
+/// it in a listing of its panes: the rule and each window that does, or None
+/// where no window does.
+pub fn tab_sized_by_window(panes: &ListPanesResponse, tab_id: TabId) -> Option<String> {
+    panes
+        .tabs
+        .iter()
+        .position(|tree| tree.window_and_tab_ids().map(|(_, tab)| tab) == Some(tab_id))
+        .and_then(|index| panes.tab_sized_by_window.get(index).cloned().flatten())
+}
+
 /// A layout as `set-layout` takes it.
 #[derive(Debug, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]

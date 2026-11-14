@@ -2,7 +2,7 @@ use crate::PKI;
 use anyhow::{anyhow, Context};
 use codec::*;
 use config::TermConfig;
-use mux::client::ClientId;
+use mux::client::{ClientId, ClientRole};
 use mux::domain::SplitSource;
 use mux::pane::{CachePolicy, Pane, PaneId};
 use mux::renderable::{RenderableDimensions, StableCursorPosition};
@@ -402,6 +402,7 @@ impl SessionHandler {
                             let mut tab_vars = vec![];
                             let mut window_titles = HashMap::new();
                             let mut window_vars = HashMap::new();
+                            let mut tab_ids = vec![];
                             for window_id in mux.iter_windows().into_iter() {
                                 let window = mux.get_window(window_id).unwrap();
                                 window_titles.insert(window_id, window.get_title().to_string());
@@ -410,8 +411,14 @@ impl SessionHandler {
                                     tabs.push(tab.codec_pane_tree());
                                     tab_titles.push(tab.get_title());
                                     tab_vars.push(tab.get_vars());
+                                    tab_ids.push(tab.tab_id());
                                 }
                             }
+                            // Read with no window held: it reads the windows again.
+                            let tab_sized_by_window = tab_ids
+                                .into_iter()
+                                .map(|tab_id| mux.sized_by_window(tab_id))
+                                .collect();
                             log::trace!("ListPanes {tabs:#?} {tab_titles:?}");
                             Ok(Pdu::ListPanesResponse(ListPanesResponse {
                                 tabs,
@@ -419,6 +426,7 @@ impl SessionHandler {
                                 tab_vars,
                                 window_titles,
                                 window_vars,
+                                tab_sized_by_window,
                             }))
                         },
                         send_response,
@@ -648,18 +656,86 @@ impl SessionHandler {
                 pane_id,
                 size,
             }) => {
+                let client_id = self.client_id.clone();
                 spawn_into_main_thread(async move {
                     catch(
                         move || {
                             let mux = Mux::get();
-                            let pane = mux
-                                .get_pane(pane_id)
-                                .ok_or_else(|| anyhow!("no such pane {}", pane_id))?;
-                            pane.resize(size)?;
                             let tab = mux
                                 .get_tab(containing_tab_id)
-                                .ok_or_else(|| anyhow!("no such tab {}", containing_tab_id))?;
-                            tab.rebuild_splits_sizes_from_contained_panes();
+                                .ok_or_else(|| anyhow!("there is no tab {containing_tab_id}"))?;
+                            let panes: Vec<PaneId> = tab
+                                .iter_panes_ignoring_zoom()
+                                .iter()
+                                .map(|positioned| positioned.pane.pane_id())
+                                .collect();
+                            if !panes.contains(&pane_id) {
+                                anyhow::bail!("pane {pane_id} is not in tab {containing_tab_id}");
+                            }
+                            if panes.len() > 1 {
+                                anyhow::bail!(
+                                    "pane {pane_id} is one of the panes {} of tab \
+                                     {containing_tab_id}, whose layout sizes them: resize the \
+                                     tab as a whole, or move a divider",
+                                    names(&panes)
+                                );
+                            }
+                            if let Some(rule) = sized_by_window(&mux, client_id.as_deref(), &tab) {
+                                anyhow::bail!("tab {containing_tab_id} is not resized: {rule}");
+                            }
+                            resize_tab(&tab, size)?;
+                            Ok(Pdu::UnitResponse(UnitResponse {}))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
+            Pdu::ResizeTab(ResizeTab { tab_id, size }) => {
+                let client_id = self.client_id.clone();
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let mux = Mux::get();
+                            let tab = mux
+                                .get_tab(tab_id)
+                                .ok_or_else(|| anyhow!("there is no tab {tab_id}"))?;
+                            let sized_by_window = sized_by_window(&mux, client_id.as_deref(), &tab);
+                            if sized_by_window.is_none() {
+                                resize_tab(&tab, size)?;
+                            }
+                            Ok(Pdu::ResizeTabResponse(ResizeTabResponse {
+                                sized_by_window,
+                            }))
+                        },
+                        send_response,
+                    )
+                })
+                .detach();
+            }
+
+            Pdu::SetClientWorkspace(SetClientWorkspace { workspace }) => {
+                let client_id = self.client_id.clone();
+                spawn_into_main_thread(async move {
+                    catch(
+                        move || {
+                            let client_id = client_id.ok_or_else(|| {
+                                anyhow!(
+                                    "a client tells the workspace it shows only once it has \
+                                     said who it is (SetClientId)"
+                                )
+                            })?;
+                            let mux = Mux::get();
+                            if mux.client_role(&client_id).is_none() {
+                                anyhow::bail!(
+                                    "client {}@{} (process {}) is not registered with this mux",
+                                    client_id.username,
+                                    client_id.hostname,
+                                    client_id.pid
+                                );
+                            }
+                            mux.set_active_workspace_for_client(&client_id, &workspace);
                             Ok(Pdu::UnitResponse(UnitResponse {}))
                         },
                         send_response,
@@ -1102,6 +1178,7 @@ impl SessionHandler {
             Pdu::Invalid { .. } => send_response(Err(anyhow!("invalid PDU {:?}", decoded.pdu))),
             Pdu::Pong { .. }
             | Pdu::ListPanesResponse { .. }
+            | Pdu::ResizeTabResponse { .. }
             | Pdu::SetClipboard { .. }
             | Pdu::NotifyAlert { .. }
             | Pdu::SpawnResponse { .. }
@@ -1236,4 +1313,49 @@ async fn move_pane(
         tab_id: tab.tab_id(),
         window_id,
     }))
+}
+
+/// The rule by which desktop windows size `tab`, when one does and the
+/// client `requester` asking to size it is not a GUI: a GUI sizes the tabs of
+/// the workspace it shows to its windows, and only another GUI's window
+/// competes with it (`Mux::sized_by_window`).
+fn sized_by_window(mux: &Mux, requester: Option<&ClientId>, tab: &mux::tab::Tab) -> Option<String> {
+    let requester_is_gui =
+        requester.and_then(|requester| mux.client_role(requester)) == Some(ClientRole::Gui);
+    if requester_is_gui {
+        return None;
+    }
+    mux.sized_by_window(tab.tab_id())
+}
+
+/// Sizes `tab` as a whole, its layout sharing the size out among its panes.
+/// Refused, changing nothing, for a size the layout does not fit in.
+fn resize_tab(tab: &mux::tab::Tab, size: wezterm_term::TerminalSize) -> anyhow::Result<()> {
+    let tab_id = tab.tab_id();
+    let (min_cols, min_rows) = tab.min_size();
+    if size.cols < min_cols || size.rows < min_rows {
+        let panes: Vec<PaneId> = tab
+            .iter_panes_ignoring_zoom()
+            .iter()
+            .map(|positioned| positioned.pane.pane_id())
+            .collect();
+        anyhow::bail!(
+            "tab {tab_id} cannot be {}x{}: its layout of panes {} needs at least {min_cols}x{min_rows} \
+             cells, one per pane and one per divider",
+            size.cols,
+            size.rows,
+            names(&panes)
+        );
+    }
+    tab.resize(size);
+    Ok(())
+}
+
+/// Pane ids as a list for a message: `1, 2, 3`.
+fn names(panes: &[PaneId]) -> String {
+    panes
+        .iter()
+        .map(|pane_id| pane_id.to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
 }

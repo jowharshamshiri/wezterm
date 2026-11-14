@@ -50,6 +50,7 @@ use termwiz::render::RenderTty;
 use termwiz::surface::{Change, CursorShape, CursorVisibility, Position, Surface};
 use wezterm_client::client::Client;
 use wezterm_client::domain::{ClientDomain, ClientDomainConfig};
+use wezterm_client::mirror::TabNotSized;
 use wezterm_client::pane::ClientPane;
 use wezterm_term::color::ColorPalette;
 use wezterm_term::{
@@ -77,9 +78,9 @@ pub struct RelayCommand {
     #[arg(long = "tab-of-pane")]
     tab_of_pane: Option<PaneId>,
 
-    /// Let `resize` events size the pane, or with `--tab-of-pane` the tab.
-    /// Without it the pane or tab keeps the size its other clients give it,
-    /// and `resize` is refused.
+    /// Let `resize` events size the pane, which must be alone in its tab, or
+    /// with `--tab-of-pane` the tab as a whole. Without it the pane or tab
+    /// keeps the size its other clients give it, and `resize` is refused.
     #[arg(long = "sized-by-input")]
     sized_by_input: bool,
 
@@ -114,6 +115,7 @@ pub fn run(
                 // A relay whose stdout is gone has nobody to tell.
                 out.send(&Out::Error {
                     message: format!("{:#}", err),
+                    sized_by_window: None,
                 })
                 .ok();
                 log::error!("{:#}", err);
@@ -179,9 +181,13 @@ pub enum Out {
     /// With `--tab-of-pane`: the pane left the tab.
     Gone,
     /// An input line was refused, an event did not reach the pane, or the
-    /// relay failed.
+    /// relay failed. A resize of the tab that the multiplexer refused
+    /// because a desktop window sizes the tab says the rule and each window
+    /// in `sized_by_window`.
     Error {
         message: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        sized_by_window: Option<String>,
     },
 }
 
@@ -490,8 +496,25 @@ enum Event {
     Input(String),
     InputFailed(String),
     InputEnded,
-    /// A request to the pane failed; the message names it.
-    RequestFailed(String),
+    /// A request to the pane failed.
+    RequestFailed(Failure),
+}
+
+/// A request that failed: the message names it, and says the rule when a
+/// desktop window sizes the tab it was to resize.
+#[derive(Clone, Debug, PartialEq)]
+struct Failure {
+    message: String,
+    sized_by_window: Option<String>,
+}
+
+impl Failure {
+    fn event(&self) -> Out {
+        Out::Error {
+            message: self.message.clone(),
+            sized_by_window: self.sized_by_window.clone(),
+        }
+    }
 }
 
 /// A request to the pane, and what it was for, to name it if it fails.
@@ -506,14 +529,23 @@ struct Request {
 /// it has been sent, with the failures.
 async fn send_requests(
     queue: smol::channel::Receiver<Request>,
-    failed: impl Fn(&str),
-) -> Vec<String> {
+    failed: impl Fn(&Failure),
+) -> Vec<Failure> {
     let mut failures = vec![];
     while let Ok(request) = queue.recv().await {
         if let Err(err) = request.send.await {
-            let message = format!("{} did not reach the pane: {:#}", request.what, err);
-            failed(&message);
-            failures.push(message);
+            let failure = match err.downcast_ref::<TabNotSized>() {
+                Some(TabNotSized::SizedByWindow(rule)) => Failure {
+                    message: format!("{} was refused: {rule}", request.what),
+                    sized_by_window: Some(rule.clone()),
+                },
+                _ => Failure {
+                    message: format!("{} did not reach the pane: {:#}", request.what, err),
+                    sized_by_window: None,
+                },
+            };
+            failed(&failure);
+            failures.push(failure);
         }
     }
     failures
@@ -621,8 +653,8 @@ async fn relay<W: Write>(
     let requests = Rc::new(Requests { sender });
     let sending = promise::spawn::spawn({
         let tx = tx.clone();
-        send_requests(queue, move |message| {
-            tx.try_send(Event::RequestFailed(message.to_string())).ok();
+        send_requests(queue, move |failure| {
+            tx.try_send(Event::RequestFailed(failure.clone())).ok();
         })
     });
 
@@ -677,15 +709,16 @@ async fn relay<W: Write>(
                     if let Err(err) = relay.input(&line, out) {
                         out.send(&Out::Error {
                             message: format!("{:#}", err),
+                            sized_by_window: None,
                         })?;
                     }
                     Flow::Continue
                 }
                 Event::InputFailed(message) => bail!(message),
                 Event::InputEnded => Flow::Stop,
-                Event::RequestFailed(message) => {
+                Event::RequestFailed(failure) => {
                     failures_reported += 1;
-                    out.send(&Out::Error { message })?;
+                    out.send(&failure.event())?;
                     Flow::Continue
                 }
                 event => relay.handle(event, out)?,
@@ -702,10 +735,8 @@ async fn relay<W: Write>(
     // order; dropping the last handle on the queue closes it.
     drop(requests);
     let failures = sending.await;
-    for message in &failures[failures_reported..] {
-        out.send(&Out::Error {
-            message: message.clone(),
-        })?;
+    for failure in &failures[failures_reported..] {
+        out.send(&failure.event())?;
     }
     result?;
     if !failures.is_empty() {
@@ -1123,10 +1154,11 @@ impl TabRelay {
         Ok(Flow::Continue)
     }
 
-    /// Sizes the whole tab, as a GUI window of that size would. The mirror
-    /// shares the size out among its panes and asks the server for each
-    /// pane's; every pane's requests are queued, so a relay whose input ends
-    /// sends them all before it stops.
+    /// Sizes the whole tab: the multiplexer shares the size out among its
+    /// panes by the tab's layout, and every client sees the new layout. The
+    /// request is queued, so a relay whose input ends has its answer before
+    /// it stops; a refusal, because a desktop window sizes the tab or the
+    /// layout does not fit the size, comes back as an error event.
     fn resize(&self, cols: usize, rows: usize) -> anyhow::Result<()> {
         if !self.sized_by_input {
             bail!("this relay does not size its tab; start it with --sized-by-input");
@@ -1135,31 +1167,25 @@ impl TabRelay {
             bail!("a tab cannot be {cols}x{rows}");
         }
         let tab_id = self.tab_id.expect("a tab relay has its tab once it starts");
-        let tab = self
+        let dpi = self
             .domain
             .remote_to_local_tab_id(tab_id)
             .and_then(|local_id| Mux::get().get_tab(local_id))
-            .ok_or_else(|| anyhow!("the relay's mirror has no tab {tab_id} yet"))?;
-        let size = tab.get_size();
-        tab.resize(TerminalSize {
-            cols,
-            rows,
-            pixel_width: 0,
-            pixel_height: 0,
-            dpi: size.dpi,
-        });
-        for positioned in tab.iter_panes_ignoring_zoom() {
-            let pane_id = positioned.pane.pane_id();
-            let client_pane = positioned
-                .pane
-                .downcast_ref::<ClientPane>()
-                .ok_or_else(|| anyhow!("pane {pane_id} of the relay's mirror is not a client's"))?;
-            self.requests.request(
-                format!("a resize of the tab to {cols}x{rows}"),
-                client_pane.resizes_sent(),
-            )?;
-        }
-        Ok(())
+            .map_or(0, |tab| tab.get_size().dpi);
+        let sized = self.domain.resize_remote_tab(
+            tab_id,
+            TerminalSize {
+                cols,
+                rows,
+                pixel_width: 0,
+                pixel_height: 0,
+                dpi,
+            },
+        )?;
+        self.requests.request(
+            format!("a resize of the tab to {cols}x{rows}"),
+            async move { sized.await.map_err(anyhow::Error::from) },
+        )
     }
 }
 
@@ -1552,8 +1578,8 @@ mod test {
         // The queue closes with requests still in it: they are sent all the same.
         drop(requests);
         let heard = RefCell::new(vec![]);
-        let failures = smol::block_on(send_requests(queue, |message| {
-            heard.borrow_mut().push(message.to_string())
+        let failures = smol::block_on(send_requests(queue, |failure| {
+            heard.borrow_mut().push(failure.clone())
         }));
         assert_eq!(
             *log.borrow(),
@@ -1561,9 +1587,40 @@ mod test {
         );
         assert_eq!(
             failures,
-            vec!["request 2 did not reach the pane: the pane is gone".to_string()]
+            vec![Failure {
+                message: "request 2 did not reach the pane: the pane is gone".to_string(),
+                sized_by_window: None,
+            }]
         );
         assert_eq!(heard.into_inner(), failures);
+    }
+
+    #[test]
+    fn a_resize_a_window_rule_refused_says_the_rule() {
+        let (requests, queue) = smol::channel::unbounded::<Request>();
+        let rule = "a desktop window sizes each tab of the workspace it shows";
+        requests
+            .try_send(Request {
+                what: "a resize of the tab to 160x48".to_string(),
+                send: Box::pin(async move {
+                    Err(anyhow::Error::from(TabNotSized::SizedByWindow(
+                        rule.to_string(),
+                    )))
+                }),
+            })
+            .unwrap();
+        drop(requests);
+        let failures = smol::block_on(send_requests(queue, |_| {}));
+        assert_eq!(
+            failures,
+            vec![Failure {
+                message: format!("a resize of the tab to 160x48 was refused: {}", rule),
+                sized_by_window: Some(rule.to_string()),
+            }]
+        );
+        let event = serde_json::to_value(failures[0].event()).unwrap();
+        assert_eq!(event["t"], "error");
+        assert_eq!(event["sized_by_window"], rule);
     }
 
     #[test]

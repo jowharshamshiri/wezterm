@@ -5,6 +5,6 @@ Usage: wsb-wezterm cli relay [OPTIONS] <--pane-id <PANE_ID>|--tab-of-pane <TAB_O
 Options:
       --pane-id <PANE_ID>          The pane to relay, as `wsb-wezterm cli list` shows it
       --tab-of-pane <TAB_OF_PANE>  Relay every pane of the tab that holds this pane, and the tab's layout, following the pane when it moves to another tab. Once the pane is gone, the relay goes on with the tab it was last in
-      --sized-by-input             Let `resize` events size the pane, or with `--tab-of-pane` the tab. Without it the pane or tab keeps the size its other clients give it, and `resize` is refused
+      --sized-by-input             Let `resize` events size the pane, which must be alone in its tab, or with `--tab-of-pane` the tab as a whole. Without it the pane or tab keeps the size its other clients give it, and `resize` is refused
       --layout-only                With `--tab-of-pane`: relay only the tab's layout, each time it changes, and no pane: no `hello` or `screen`, and input takes only a `resize` of the tab
   -h, --help                       Print help

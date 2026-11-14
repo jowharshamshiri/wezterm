@@ -596,6 +596,47 @@ impl Mux {
             .collect()
     }
 
+    /// What the client `ident` is for, once it has said (`register_client`).
+    pub fn client_role(&self, ident: &ClientId) -> Option<ClientRole> {
+        self.clients.read().get(ident).map(|info| info.role)
+    }
+
+    /// The rule by which desktop windows size the tab `tab_id`, naming each
+    /// GUI attached to this mux that sizes it: a GUI sizes every tab of the
+    /// workspace it shows (`active_workspace`, which it tells the mux) to its
+    /// windows. None when no GUI shows the tab's workspace, or no window
+    /// holds the tab.
+    pub fn sized_by_window(&self, tab_id: TabId) -> Option<String> {
+        let window_id = self.window_containing_tab(tab_id)?;
+        let workspace = self.get_window(window_id)?.get_workspace().to_string();
+        let mut windows: Vec<String> = self
+            .clients
+            .read()
+            .values()
+            .filter(|info| {
+                info.role == ClientRole::Gui
+                    && info.active_workspace.as_deref() == Some(workspace.as_str())
+            })
+            .map(|info| {
+                format!(
+                    "the wsb-wezterm window of {}@{} (process {})",
+                    info.client_id.username, info.client_id.hostname, info.client_id.pid
+                )
+            })
+            .collect();
+        if windows.is_empty() {
+            return None;
+        }
+        windows.sort();
+        windows.dedup();
+        Some(format!(
+            "a desktop window sizes each tab of the workspace it shows, and tab {tab_id} is in \
+             workspace \"{workspace}\", which {} {}",
+            windows.join(" and "),
+            if windows.len() == 1 { "shows" } else { "show" }
+        ))
+    }
+
     /// Returns a list of the unique workspace names known to the mux.
     /// This is taken from all known windows.
     pub fn iter_workspaces(&self) -> Vec<String> {

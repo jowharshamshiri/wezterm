@@ -5,47 +5,8 @@
 
 mod common;
 
-use common::{Relay, Server};
+use common::{assert_fills, layout, shape, sized_by_window, split, tab_shape, Relay, Server};
 use serde_json::{json, Value};
-
-/// The layout of the tab holding `pane`, as `get-layout` prints it.
-fn layout(server: &Server, pane: u64) -> Value {
-    serde_json::from_str(&server.cli(&["get-layout", "--pane-id", &pane.to_string()])).unwrap()
-}
-
-/// A tree in short: a pane as `id:COLSxROWS@LEFT,TOP`, a horizontal split as
-/// `(first | second)`, a vertical one as `(first / second)`.
-fn shape(node: &Value) -> String {
-    if let Some(pane) = node.get("pane") {
-        return format!(
-            "{}:{}x{}@{},{}",
-            pane["id"], pane["cols"], pane["rows"], pane["left"], pane["top"]
-        );
-    }
-    let split = &node["split"];
-    let divider = match split["direction"].as_str().unwrap() {
-        "horizontal" => "|",
-        "vertical" => "/",
-        other => panic!("a split's direction is {:?}", other),
-    };
-    format!(
-        "({} {divider} {})",
-        shape(&split["first"]),
-        shape(&split["second"])
-    )
-}
-
-/// The shape of the tab holding `pane`.
-fn tab_shape(server: &Server, pane: u64) -> String {
-    shape(&layout(server, pane)["root"])
-}
-
-/// Splits `pane` with `args`, returning the new pane.
-fn split(server: &Server, pane: u64, args: &[&str]) -> u64 {
-    let pane = pane.to_string();
-    let out = server.cli(&[&["split-pane", "--pane-id", &pane], args].concat());
-    out.trim().parse().unwrap()
-}
 
 /// A new tab beside the tab of `pane`, running `cat`; returns its pane.
 fn new_tab(server: &Server, pane: u64) -> u64 {
@@ -103,10 +64,14 @@ fn a_layout_is_the_tree_with_each_panes_place_size_and_program() {
     );
     // Any pane of the tab, or the tab itself, names it.
     let tab_id = tab["tab_id"].to_string();
+    let mut by_tab =
+        serde_json::from_str::<Value>(&server.cli(&["get-layout", "--tab-id", &tab_id])).unwrap();
     assert_eq!(
-        serde_json::from_str::<Value>(&server.cli(&["get-layout", "--tab-id", &tab_id])).unwrap(),
-        tab
+        by_tab.as_object_mut().unwrap().remove("sized_by_window"),
+        Some(Value::Null),
+        "no window is attached"
     );
+    assert_eq!(by_tab, tab);
     assert!(server
         .cli_fails(&["get-layout", "--tab-id", "99"], "")
         .contains("there is no tab 99"));
@@ -517,7 +482,7 @@ fn a_tab_relay_follows_its_pane_to_another_tab_and_ends_with_its_tab() {
     let mut relay = server.relay_with(&["--tab-of-pane", "1"]);
     relay.expect("layout");
     let hello = relay.expect("hello");
-    assert_eq!(hello["sized_by_input"], false, "{hello}");
+    assert_eq!(hello["sized_by_input"], false, "{}", hello);
 
     // Pane 1 moves to a tab of its own: the panes it leaves are gone.
     server.cli(&["move-pane-to-new-tab", "--pane-id", "1"]);
@@ -550,7 +515,7 @@ fn a_tab_relay_takes_input_for_each_pane_and_sizes_the_tab() {
         let hello = relay.expect_where(&format!("hello for pane {pane}"), |e| {
             e["t"] == "hello" && e["pane"] == pane
         });
-        assert_eq!(hello["sized_by_input"], true, "{hello}");
+        assert_eq!(hello["sized_by_input"], true, "{}", hello);
     }
     relay.send(json!({"t": "text", "text": "hi", "pane": 1}));
     relay.send(json!({"t": "key", "key": "Enter", "pane": 1}));
@@ -598,14 +563,23 @@ fn a_tab_relay_takes_input_for_each_pane_and_sizes_the_tab() {
 #[test]
 fn a_tab_relay_whose_input_ends_has_sized_the_tab_first() {
     // A program sizing a tab writes one resize and closes the relay's input:
-    // the relay ends only once the server has given the tab that size, for a
-    // tab of one pane, of one split and of a split within a split.
+    // the relay ends only once the server has given the tab that size, as a
+    // whole, for a tab of one pane, of one split, of a split within a split
+    // either way, and of three panes side by side. Every tree fills the tab.
     for (splits, sized) in [
         (&[][..], "0:160x48@0,0"),
         (&[(0, "--right")][..], "(0:79x48@0,0 | 1:80x48@80,0)"),
         (
             &[(0, "--right"), (1, "--bottom")][..],
             "(0:79x48@0,0 | (1:80x23@80,0 / 2:80x24@80,24))",
+        ),
+        (
+            &[(0, "--bottom"), (1, "--right")][..],
+            "(0:160x23@0,0 / (1:79x24@0,24 | 2:80x24@80,24))",
+        ),
+        (
+            &[(0, "--right"), (1, "--right")][..],
+            "(0:79x48@0,0 | (1:59x48@80,0 | 2:20x48@140,0))",
         ),
     ] {
         let server = server();
@@ -624,9 +598,124 @@ fn a_tab_relay_whose_input_ends_has_sized_the_tab_first() {
                 shape(&tab["root"])
             ),
             (Some(160), Some(48), sized.to_string()),
-            "{tab}"
+            "{}",
+            tab
+        );
+        assert_fills(&tab);
+        assert_eq!(
+            sized_by_window(&server, 0),
+            Value::Null,
+            "no window is attached"
         );
     }
+}
+
+#[test]
+fn a_pane_of_a_tab_with_others_is_not_resized_alone() {
+    // The owner's side panel: a pane split right at 32 cells, its right side
+    // split down. Resizing pane 0 alone used to give it the size while its
+    // tab kept the rest, which then did not add up: a 120x48 split of pane 0
+    // at 87x48 and a right side of 32x24. The tab's layout sizes its panes,
+    // so the server refuses it and changes nothing.
+    let server = Server::sized(120, 24, &["cat"]);
+    split(&server, 0, &["--right", "--cells", "32"]);
+    split(&server, 1, &["--bottom"]);
+    let before = layout(&server, 0);
+    assert_eq!(
+        shape(&before["root"]),
+        "(0:87x24@0,0 | (1:32x11@88,0 / 2:32x12@88,12))"
+    );
+    let mut relay = server.relay(0, &["--sized-by-input"]);
+    relay.expect("hello");
+    relay.send(json!({"t": "resize", "cols": 87, "rows": 48}));
+    let err = relay.expect("error");
+    let tab = before["tab_id"].as_u64().unwrap();
+    assert!(
+        err["message"].as_str().unwrap().contains(&format!(
+            "pane 0 is one of the panes 0, 1, 2 of tab {tab}, whose layout sizes them"
+        )),
+        "{}",
+        err
+    );
+    assert_eq!(err.get("sized_by_window"), None, "{}", err);
+    drop(relay);
+    let after = layout(&server, 0);
+    assert_eq!(after, before);
+    assert_fills(&after);
+}
+
+#[test]
+fn resize_tab_sizes_a_tab_as_a_whole() {
+    let server = server();
+    split(&server, 0, &["--right", "--cells", "30"]);
+    split(&server, 1, &["--bottom"]);
+    let said = server.cli(&[
+        "resize-tab",
+        "--pane-id",
+        "1",
+        "--cols",
+        "100",
+        "--rows",
+        "30",
+    ]);
+    assert_eq!(said.trim(), r#"{"sized_by_window":null}"#);
+    let tab = layout(&server, 0);
+    assert_eq!(
+        (&tab["cols"], &tab["rows"]),
+        (&json!(100), &json!(30)),
+        "{}",
+        tab
+    );
+    assert_fills(&tab);
+    let id = tab["tab_id"].to_string();
+    let refused = server.cli_fails(
+        &["resize-tab", "--tab-id", &id, "--cols", "2", "--rows", "30"],
+        "",
+    );
+    assert!(
+        refused.contains(&format!(
+            "tab {id} cannot be 2x30: its layout of panes 0, 1, 2 needs at least 3x3 cells"
+        )),
+        "{}",
+        refused
+    );
+    assert_eq!(layout(&server, 0), tab);
+    assert!(server
+        .cli_fails(
+            &[
+                "resize-tab",
+                "--tab-id",
+                "99",
+                "--cols",
+                "80",
+                "--rows",
+                "24"
+            ],
+            ""
+        )
+        .contains("there is no tab 99"));
+}
+
+#[test]
+fn a_tab_is_not_resized_below_what_its_layout_needs() {
+    let server = server();
+    split(&server, 0, &["--right"]);
+    split(&server, 1, &["--right"]);
+    let before = layout(&server, 0);
+    let tab = before["tab_id"].as_u64().unwrap();
+    let mut relay = server.relay_with(&["--tab-of-pane", "0", "--sized-by-input"]);
+    relay.expect("layout");
+    relay.send(json!({"t": "resize", "cols": 3, "rows": 2}));
+    let err = relay.expect("error");
+    assert!(
+        err["message"].as_str().unwrap().contains(&format!(
+            "tab {tab} cannot be 3x2: its layout of panes 0, 1, 2 needs at least 5x1 cells"
+        )),
+        "{}",
+        err
+    );
+    drop(relay);
+    assert_eq!(layout(&server, 0), before);
 }
 
 #[test]
@@ -638,7 +727,8 @@ fn a_layout_only_relay_sends_the_tabs_layout_as_it_changes_and_no_pane() {
         relay.expect_where(&format!("a layout of {wanted}"), |event| {
             assert!(
                 event["t"] == "layout" || event["t"] == "error",
-                "a layout-only relay sent {event}"
+                "a layout-only relay sent {}",
+                event
             );
             event["t"] == "layout" && shape(&event["tab"]["root"]) == wanted
         })
@@ -659,7 +749,8 @@ fn a_layout_only_relay_sends_the_tabs_layout_as_it_changes_and_no_pane() {
             .as_str()
             .unwrap()
             .contains("a layout-only relay relays no pane"),
-        "{err}"
+        "{}",
+        err
     );
     // Its input ending ends it.
     drop(relay.stdin.take());

@@ -19,6 +19,7 @@ $ wsb-wezterm cli get-layout --pane-id 0
   "rows": 24,
   "active": 2,
   "zoomed": null,
+  "sized_by_window": null,
   "root": {
     "split": {
       "direction": "horizontal",
@@ -51,6 +52,7 @@ $ wsb-wezterm cli get-layout --pane-id 0
 | `cols`, `rows` | The size of the tab's tree, in cells. |
 | `active` | The focused pane. |
 | `zoomed` | The zoomed pane, which then fills the tab, or `null`. |
+| `sized_by_window` | Where a desktop window sizes the tab, the rule and each window, by its user, machine and process: a GUI sizes every tab of the workspace it shows, and the multiplexer refuses a resize of it from any other client. `null` where no window shows the tab's workspace. |
 | `root` | The tree: a `pane` or a `split`. |
 
 A `split` divides its place in two:

@@ -55,15 +55,16 @@ pub struct ClientPane {
     resizes: Arc<Mutex<Resizes>>,
 }
 
-/// The sizes this client asks the server to give a pane. They are sent one at a
-/// time, the next only once the server has applied the last, and only the most
-/// recent size waits to be sent: requests sent together could be applied in any
-/// order, and an earlier size could be the one the pane is left at.
+/// The sizes this client asks the server to give a pane alone in its tab
+/// (`resize_request`). They are sent one at a time, the next only once the
+/// server has applied the last, and only the most recent size waits to be
+/// sent: requests sent together could be applied in any order, and an earlier
+/// size could be the one the pane is left at.
 struct Resizes {
     /// The size most recently asked for.
     wanted: TerminalSize,
-    /// The size the server last applied at our request; None once the server
-    /// reports another size, which a request must then put right.
+    /// The size the server last applied at our request in this run of
+    /// requests; None while none has been.
     applied: Option<TerminalSize>,
     in_flight: bool,
     /// Who waits for the requests in flight to end (`resize_request`): told
@@ -194,13 +195,29 @@ impl ClientPane {
         }
     }
 
-    /// Asks the server to size the pane, as `resize` does. The future ends
-    /// once no size is left to send, or with why the last request failed.
+    /// Asks the server to size the pane, and so its tab, which must hold no
+    /// other pane: a pane of a tab with others is sized by the tab's layout,
+    /// and the server refuses it. The future ends once no size is left to
+    /// send, or with why the last request failed.
     pub fn resize_request(
         &self,
         size: TerminalSize,
     ) -> anyhow::Result<impl Future<Output = anyhow::Result<()>> + 'static> {
         self.resize(size)?;
+        let mut resizes = self.resizes.lock();
+        resizes.wanted = size;
+        if !resizes.in_flight {
+            resizes.applied = None;
+            resizes.in_flight = true;
+            promise::spawn::spawn(send_resizes(
+                Arc::clone(&self.client),
+                self.remote_tab_id,
+                self.remote_pane_id,
+                Arc::clone(&self.resizes),
+            ))
+            .detach();
+        }
+        drop(resizes);
         Ok(self.resizes_sent())
     }
 
@@ -556,6 +573,11 @@ impl Pane for ClientPane {
         inner.update_last_send();
     }
 
+    /// Shows the pane at `size` until the server's next update says its
+    /// size, and asks the server nothing: the server's tab sizes its panes by
+    /// its layout, and the mirror tab asks it for the tab's size and dividers
+    /// (`mux::tab::TabMirror`). `resize_request` asks the server to size a
+    /// pane alone in its tab.
     fn resize(&self, size: TerminalSize) -> anyhow::Result<()> {
         let render = self.renderable.lock();
         let mut inner = render.inner.borrow_mut();
@@ -563,11 +585,11 @@ impl Pane for ClientPane {
         let cols = size.cols as usize;
         let rows = size.rows as usize;
 
-        let server_differs = inner.dimensions.cols != cols
+        if inner.dimensions.cols != cols
             || inner.dimensions.viewport_rows != rows
             || inner.dimensions.pixel_width != size.pixel_width
-            || inner.dimensions.pixel_height != size.pixel_height;
-        if server_differs {
+            || inner.dimensions.pixel_height != size.pixel_height
+        {
             inner.dimensions.cols = cols;
             inner.dimensions.viewport_rows = rows;
             inner.dimensions.pixel_width = size.pixel_width;
@@ -575,32 +597,6 @@ impl Pane for ClientPane {
 
             // Invalidate any cached rows on a resize
             inner.make_all_stale();
-            inner.update_last_send();
-        }
-        drop(inner);
-        drop(render);
-
-        // The dimensions above follow the server's, which lag behind our requests
-        // while one is in flight; then only a new size has anything to send.
-        // Otherwise a server whose pane is another size (another client resized
-        // it) is told ours again.
-        let mut resizes = self.resizes.lock();
-        if resizes.wanted == size && (resizes.in_flight || !server_differs) {
-            return Ok(());
-        }
-        resizes.wanted = size;
-        if !resizes.in_flight {
-            if server_differs {
-                resizes.applied = None;
-            }
-            resizes.in_flight = true;
-            promise::spawn::spawn(send_resizes(
-                Arc::clone(&self.client),
-                self.remote_tab_id,
-                self.remote_pane_id,
-                Arc::clone(&self.resizes),
-            ))
-            .detach();
         }
         Ok(())
     }

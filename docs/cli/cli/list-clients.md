@@ -21,7 +21,10 @@ The meanings of the fields are:
   `wsb-wezterm start` asking a running GUI to spawn. {{since('nightly', inline=True)}}
 * `CONNECTED` - shows how long the connection has been established
 * `IDLE` - shows how long it has been since input was received from that client
-* `WORKSPACE` - shows the active workspace for that session
+* `WORKSPACE` - shows the active workspace for that session: for a `gui`, the
+  workspace it shows, which it tells the multiplexer as it connects and as it
+  switches; its windows size that workspace's tabs (see
+  [get-layout](get-layout.md)'s `sized_by_window`)
 * `FOCUS` - shows the pane id of the pane that has focus in that session
 
 {{since('20220624-141144-bd1b7c5d')}}

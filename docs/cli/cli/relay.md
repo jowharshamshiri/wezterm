@@ -49,7 +49,7 @@ The relay writes:
 | `palette` | `palette` | The pane's colors changed. |
 | `bell` | | The program rang the bell. |
 | `exit` | | The pane is gone. |
-| `error` | `message` | An input line was refused, an event did not reach the pane, or the relay failed. |
+| `error` | `message`, `sized_by_window` | An input line was refused, an event did not reach the pane, or the relay failed. `sized_by_window` is there only for a resize of the tab the multiplexer refused because a desktop window sizes the tab: the rule and each window, as [get-layout](get-layout.md) says them. |
 
 The relay reads:
 
@@ -61,7 +61,7 @@ The relay reads:
 | `mouse` | `kind`, `x`, `y`, `button`, `mods` | `kind` is `press`, `release` or `move`; `x` and `y` are a cell of the visible screen counted from 0; `button` is `left`, `middle`, `right`, `wheel_up`, `wheel_down` or `none`. |
 | `scroll` | `rows` | Move the view that many rows into the scrollback (positive) or back toward the bottom (negative). Input returns the view to the bottom. |
 | `bottom` | | Follow the bottom of the pane again. |
-| `resize` | `cols`, `rows` | Resize the pane. Refused unless the relay was started with `--sized-by-input`. |
+| `resize` | `cols`, `rows` | Resize the pane, which must be alone in its tab: a pane of a tab with others is sized by the tab's layout, and the multiplexer refuses it, naming the tab and its panes. Refused unless the relay was started with `--sized-by-input`. |
 | `repaint` | | Paint the whole screen again. |
 
 A line that is not one of these is answered with an `error` event, and the
@@ -99,12 +99,16 @@ pane it leaves behind, then the new tab's `layout`, then `hello` for each of
 its other panes.
 
 Every event the relay reads names its pane with a `pane` field, except
-`resize`: a `resize` without `pane` sizes the whole tab, as a GUI window of
-that size would, and only with `--sized-by-input`. A pane's own size comes
-from the tab's layout, so a `resize` naming a pane is refused. A tab's resize
-counts as sent once the multiplexer has taken every pane's new size, so a
-relay whose input ends after a `resize` stops only once the tab has that
-size.
+`resize`: a `resize` without `pane` sizes the whole tab, and only with
+`--sized-by-input`. It is one request to the multiplexer, which shares the
+size out among the tab's panes by its layout and tells every client the new
+layout. A pane's own size comes from the tab's layout, so a `resize` naming a
+pane is refused. A tab's resize counts as sent once the multiplexer has
+answered it, so a relay whose input ends after a `resize` stops only once the
+tab has that size. The multiplexer refuses it, leaving the tab as it is, when
+a desktop window shows the tab's workspace and so sizes the tab (the `error`
+event's `sized_by_window` says the rule and each window), and when the tab's
+layout does not fit the size (one cell per pane and one per divider).
 
 ### Following a tab's layout
 

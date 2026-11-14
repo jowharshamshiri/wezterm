@@ -19,6 +19,7 @@ mod proxy;
 mod relay;
 mod rename_workspace;
 mod resize_split;
+mod resize_tab;
 mod send_keys;
 mod send_text;
 mod set_layout;
@@ -155,6 +156,14 @@ Outputs the pane-id for the newly created pane on success"
     #[command(name = "resize-split", rename_all = "kebab")]
     ResizeSplit(resize_split::ResizeSplit),
 
+    /// Size a tab as a whole: the multiplexer shares the size out among its
+    /// panes by the tab's layout. Prints {"sized_by_window":null} once the
+    /// tab has the size; where a desktop window sizes the tab, prints the
+    /// rule and each window as {"sized_by_window":"..."}, leaves the tab as
+    /// it is, and exits with status 3.
+    #[command(name = "resize-tab", rename_all = "kebab")]
+    ResizeTab(resize_tab::ResizeTab),
+
     /// Swap two panes, each taking the other's place and size.
     #[command(name = "swap-panes", rename_all = "kebab")]
     SwapPanes(swap_panes::SwapPanes),
@@ -237,6 +246,7 @@ async fn run_cli_async(opts: &crate::Opt, cli: CliCommand) -> anyhow::Result<()>
         CliSubCommand::GetLayout(cmd) => cmd.run(client).await,
         CliSubCommand::SetLayout(cmd) => cmd.run(client).await,
         CliSubCommand::ResizeSplit(cmd) => cmd.run(client).await,
+        CliSubCommand::ResizeTab(cmd) => cmd.run(client).await,
         CliSubCommand::SwapPanes(cmd) => cmd.run(client).await,
         CliSubCommand::SpawnCommand(cmd) => cmd.run(client, &crate::init_config(opts)?).await,
         CliSubCommand::Proxy(cmd) => cmd.run(client, &crate::init_config(opts)?).await,

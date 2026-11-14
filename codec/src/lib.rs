@@ -443,7 +443,7 @@ macro_rules! pdu {
 /// The overall version of the codec.
 /// This must be bumped when backwards incompatible changes
 /// are made to the types and protocol.
-pub const CODEC_VERSION: usize = 49;
+pub const CODEC_VERSION: usize = 50;
 
 // Defines the Pdu enum.
 // Each struct has an explicit identifying number.
@@ -509,6 +509,9 @@ pdu! {
     ResizeSplit: 65,
     SwapPanes: 66,
     SetTabLayout: 67,
+    ResizeTab: 68,
+    ResizeTabResponse: 69,
+    SetClientWorkspace: 70,
 }
 
 impl Pdu {
@@ -522,6 +525,7 @@ impl Pdu {
             | Self::SendMouseEvent(_)
             | Self::SendPaste(_)
             | Self::Resize(_)
+            | Self::ResizeTab(_)
             | Self::SetClipboard(_)
             | Self::SetPaneZoomed(_)
             | Self::SpawnV2(_) => true,
@@ -657,6 +661,10 @@ pub struct ListPanesResponse {
     pub tab_vars: Vec<BTreeMap<String, String>>,
     pub window_titles: HashMap<WindowId, String>,
     pub window_vars: HashMap<WindowId, BTreeMap<String, String>>,
+    /// For each tab, in the order of `tabs`, the rule by which desktop
+    /// windows size it and the windows that do (`Mux::sized_by_window`), or
+    /// None where no window does.
+    pub tab_sized_by_window: Vec<Option<String>>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -890,11 +898,39 @@ pub struct GetClientListResponse {
     pub clients: Vec<ClientInfo>,
 }
 
+/// Sizes a pane alone in its tab, and so its tab. A pane of a tab that holds
+/// others is sized by the tab's layout: the server refuses it, and the tab is
+/// sized with `ResizeTab`.
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct Resize {
     pub containing_tab_id: TabId,
     pub pane_id: PaneId,
     pub size: TerminalSize,
+}
+
+/// Sizes a tab as a whole: the server shares the size out among its panes
+/// by the tab's layout (`Tab::resize`) and tells every client the new layout.
+/// Answered with `ResizeTabResponse`.
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct ResizeTab {
+    pub tab_id: TabId,
+    pub size: TerminalSize,
+}
+
+/// How the server took a `ResizeTab`: resized, or left as it is because a
+/// desktop window sizes the tab, `sized_by_window` naming the rule and each
+/// window. A tab that does not exist, or a size it cannot take, is an
+/// `ErrorResponse`.
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct ResizeTabResponse {
+    pub sized_by_window: Option<String>,
+}
+
+/// Tells the server the workspace a GUI client shows, whose tabs its windows
+/// size (`Mux::sized_by_window`).
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub struct SetClientWorkspace {
+    pub workspace: String,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

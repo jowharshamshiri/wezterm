@@ -1221,6 +1221,16 @@ impl Client {
                     kind: ClientKind::Client(role),
                 })
                 .await?;
+                if role == ClientRole::Gui {
+                    // The server learns the workspace a GUI shows, whose tabs
+                    // its windows size, at each connection and as it changes
+                    // (the domain's ActiveWorkspaceChanged).
+                    let workspace = Mux::try_get()
+                        .ok_or_else(|| anyhow!("a GUI connects with no mux of its own"))?
+                        .active_workspace();
+                    self.set_client_workspace(SetClientWorkspace { workspace })
+                        .await?;
+                }
                 Ok(info)
             }
             Ok(info) => {
@@ -1450,4 +1460,6 @@ impl Client {
     rpc!(resize_split, ResizeSplit, UnitResponse);
     rpc!(swap_panes, SwapPanes, UnitResponse);
     rpc!(set_tab_layout, SetTabLayout, UnitResponse);
+    rpc!(resize_tab, ResizeTab, ResizeTabResponse);
+    rpc!(set_client_workspace, SetClientWorkspace, UnitResponse);
 }

@@ -1,4 +1,5 @@
 use crate::client::Client;
+use crate::mirror::{MirroredTab, TabNotSized, TabSizes};
 use crate::pane::ClientPane;
 use anyhow::{anyhow, bail};
 use async_trait::async_trait;
@@ -27,6 +28,8 @@ pub struct ClientInner {
     remote_to_local_window: Mutex<HashMap<WindowId, WindowId>>,
     remote_to_local_tab: Mutex<HashMap<TabId, TabId>>,
     remote_to_local_pane: Mutex<HashMap<PaneId, PaneId>>,
+    /// The sizes asked of each of the server's tabs, by its id.
+    tab_sizes: Mutex<HashMap<TabId, Arc<TabSizes>>>,
     pub focused_remote_pane_id: Mutex<Option<PaneId>>,
 }
 
@@ -149,6 +152,29 @@ impl ClientInner {
         pane_map.remove(&remote_pane_id);
     }
 
+    /// The sizes asked of the server's tab `remote_tab_id`, shared by its
+    /// mirror and whoever asks the tab's size directly.
+    fn tab_sizes(&self, remote_tab_id: TabId) -> Arc<TabSizes> {
+        Arc::clone(
+            self.tab_sizes
+                .lock()
+                .unwrap()
+                .entry(remote_tab_id)
+                .or_insert_with(|| Arc::new(TabSizes::default())),
+        )
+    }
+
+    /// A new local tab mirroring the server's tab `remote_tab_id`.
+    fn mirror_tab(self: &Arc<Self>, remote_tab_id: TabId, size: &TerminalSize) -> Arc<Tab> {
+        let tab = Arc::new(Tab::new(size));
+        tab.set_mirror(Arc::new(MirroredTab::new(
+            self,
+            remote_tab_id,
+            self.tab_sizes(remote_tab_id),
+        )));
+        tab
+    }
+
     pub fn remove_old_tab_mapping(&self, remote_tab_id: TabId) {
         let mut tab_map = self.remote_to_local_tab.lock().unwrap();
         let old = tab_map.remove(&remote_tab_id);
@@ -249,6 +275,7 @@ impl ClientInner {
             remote_to_local_window: Mutex::new(HashMap::new()),
             remote_to_local_tab: Mutex::new(HashMap::new()),
             remote_to_local_pane: Mutex::new(HashMap::new()),
+            tab_sizes: Mutex::new(HashMap::new()),
             focused_remote_pane_id: Mutex::new(None),
         }
     }
@@ -283,8 +310,24 @@ fn mux_notify_client_domain(local_domain_id: DomainId, notif: MuxNotification) -
     };
 
     match notif {
-        MuxNotification::ActiveWorkspaceChanged(_client_id) => {
-            // TODO: advice remote host of interesting workspaces
+        MuxNotification::ActiveWorkspaceChanged(client_id) => {
+            // A GUI tells the server the workspace it shows, whose tabs its
+            // windows size.
+            if let Some(inner) = client_domain.inner() {
+                if inner.role == ClientRole::Gui {
+                    let workspace = mux.active_workspace_for_client(&client_id);
+                    promise::spawn::spawn(async move {
+                        if let Err(err) = inner
+                            .client
+                            .set_client_workspace(codec::SetClientWorkspace { workspace })
+                            .await
+                        {
+                            log::error!("telling the server the workspace shown: {err:#}");
+                        }
+                    })
+                    .detach();
+                }
+            }
         }
         MuxNotification::WorkspaceRenamed {
             old_workspace,
@@ -502,6 +545,23 @@ impl ClientDomain {
         inner.local_to_remote_tab(local_tab_id)
     }
 
+    /// Asks the server to size its tab `remote_tab_id` `size` exactly, after
+    /// what was asked of the tab before. The future ends once no size is left
+    /// to send, with how the last request ended: refused because a desktop
+    /// window sizes the tab, or failed.
+    pub fn resize_remote_tab(
+        &self,
+        remote_tab_id: TabId,
+        size: TerminalSize,
+    ) -> anyhow::Result<impl std::future::Future<Output = Result<(), TabNotSized>> + 'static> {
+        let inner = self
+            .inner()
+            .ok_or_else(|| anyhow!("domain {} is not attached", self.local_domain_id))?;
+        Ok(inner
+            .tab_sizes(remote_tab_id)
+            .ask(&inner, remote_tab_id, size))
+    }
+
     pub fn get_client_inner_for_domain(domain_id: DomainId) -> anyhow::Result<Arc<ClientInner>> {
         let mux = Mux::get();
         let domain = mux
@@ -629,11 +689,14 @@ impl ClientDomain {
             .collect();
 
         anyhow::ensure!(
-            panes.tab_titles.len() == panes.tabs.len() && panes.tab_vars.len() == panes.tabs.len(),
-            "the server listed {} tabs with {} titles and {} sets of variables",
+            panes.tab_titles.len() == panes.tabs.len()
+                && panes.tab_vars.len() == panes.tabs.len()
+                && panes.tab_sized_by_window.len() == panes.tabs.len(),
+            "the server listed {} tabs with {} titles, {} sets of variables and {} sizing rules",
             panes.tabs.len(),
             panes.tab_titles.len(),
-            panes.tab_vars.len()
+            panes.tab_vars.len(),
+            panes.tab_sized_by_window.len()
         );
         for ((tabroot, tab_title), tab_vars) in panes
             .tabs
@@ -665,13 +728,13 @@ impl ClientDomain {
                                  tab is not in the mux, make a new tab"
                             );
                             inner.remove_old_tab_mapping(remote_tab_id);
-                            tab = Arc::new(Tab::new(&root_size));
+                            tab = inner.mirror_tab(remote_tab_id, &root_size);
                             inner.record_remote_to_local_tab_mapping(remote_tab_id, tab.tab_id());
                             mux.add_tab_no_panes(&tab);
                         }
                     };
                 } else {
-                    tab = Arc::new(Tab::new(&root_size));
+                    tab = inner.mirror_tab(remote_tab_id, &root_size);
                     mux.add_tab_no_panes(&tab);
                     inner.record_remote_to_local_tab_mapping(remote_tab_id, tab.tab_id());
                 }
