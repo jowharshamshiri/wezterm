@@ -254,6 +254,134 @@ fn a_pane_moves_to_a_place_in_its_tab_in_another_tab_or_to_a_new_tab() {
 }
 
 #[test]
+fn a_move_into_a_tab_too_small_to_split_leaves_the_pane_in_its_tab_and_says_why() {
+    let server = server();
+    split(&server, 0, &["--right"]);
+    let small = new_tab(&server, 0);
+    assert_eq!(small, 2);
+    let small_tab = layout(&server, small)["tab_id"].to_string();
+    server.cli(&[
+        "resize-tab",
+        "--tab-id",
+        &small_tab,
+        "--cols",
+        "10",
+        "--rows",
+        "5",
+    ]);
+    let before = tab_shape(&server, 0);
+
+    let err = server.cli_fails(
+        &[
+            "split-pane",
+            "--pane-id",
+            "2",
+            "--right",
+            "--cells",
+            "20",
+            "--move-pane-id",
+            "1",
+        ],
+        "",
+    );
+    assert!(
+        err.contains(
+            "pane 1 cannot move beside pane 2, and stays where it was: \
+             no room for a pane of 20 cells on the right of pane 2, which is 10x5 cells: \
+             the split would leave parts of 0x5 and 20x5 cells, \
+             and each needs at least 1x1 beside the divider"
+        ),
+        "{}",
+        err
+    );
+
+    // Pane 1 is where it was, in its own tab, and its program still takes
+    // what is sent to it.
+    assert_eq!(tab_shape(&server, 0), before);
+    assert_eq!(tab_shape(&server, small), "2:10x5@0,0");
+    assert_eq!(tab_ids(&server).len(), 2);
+    server.cli(&["send-text", "--pane-id", "1", "--no-paste", "still here\n"]);
+    server.wait_for_text(1, "still here\nstill here");
+}
+
+#[test]
+fn a_move_within_its_tab_is_refused_only_when_the_tab_without_it_has_no_room() {
+    let server = server();
+    split(&server, 0, &["--right", "--cells", "70"]);
+    let before = tab_shape(&server, 0);
+    assert_eq!(before, "(0:9x24@0,0 | 1:70x24@10,0)");
+
+    // Once pane 1 is out of the tab, pane 0 has all 24 rows: 30 do not fit.
+    let err = server.cli_fails(
+        &[
+            "split-pane",
+            "--pane-id",
+            "0",
+            "--bottom",
+            "--cells",
+            "30",
+            "--move-pane-id",
+            "1",
+        ],
+        "",
+    );
+    assert!(
+        err.contains(
+            "pane 1 cannot move beside pane 0, and stays where it was: \
+             no room for a pane of 30 cells below pane 0, which is 80x24 cells: \
+             the split would leave parts of 80x0 and 80x30 cells, \
+             and each needs at least 1x1 beside the divider"
+        ),
+        "{}",
+        err
+    );
+    assert_eq!(tab_shape(&server, 0), before);
+
+    // Pane 0 is 9 columns wide now, too narrow for 40 more; with pane 1 out
+    // of the tab it has all 80, and the move fits.
+    split(
+        &server,
+        0,
+        &["--right", "--cells", "40", "--move-pane-id", "1"],
+    );
+    assert_eq!(tab_shape(&server, 0), "(0:39x24@0,0 | 1:40x24@40,0)");
+
+    let err = server.cli_fails(
+        &[
+            "split-pane",
+            "--pane-id",
+            "1",
+            "--left",
+            "--move-pane-id",
+            "1",
+        ],
+        "",
+    );
+    assert!(err.contains("pane 1 cannot move beside itself"), "{}", err);
+    assert_eq!(tab_shape(&server, 0), "(0:39x24@0,0 | 1:40x24@40,0)");
+}
+
+#[test]
+fn a_split_with_no_room_starts_no_program() {
+    let server = server();
+    let err = server.cli_fails(
+        &["split-pane", "--pane-id", "0", "--top", "--cells", "24"],
+        "",
+    );
+    assert!(
+        err.contains(
+            "no room for a pane of 24 cells above pane 0, which is 80x24 cells: \
+             the split would leave parts of 80x24 and 80x0 cells, \
+             and each needs at least 1x1 beside the divider"
+        ),
+        "{}",
+        err
+    );
+    assert_eq!(server.panes().len(), 1);
+    assert_eq!(tab_shape(&server, 0), "0:80x24@0,0");
+}
+
+#[test]
 fn swapped_panes_trade_places_in_a_tab_and_between_tabs() {
     let server = server();
     split(&server, 0, &["--right", "--cells", "30"]);

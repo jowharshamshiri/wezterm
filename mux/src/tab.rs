@@ -1063,6 +1063,31 @@ impl Tab {
         self.inner.lock().compute_split_size(pane_index, request)
     }
 
+    /// The split of the pane that has pane_index that `request` asks for,
+    /// refused, naming the sizes, when the tab has no room for it.
+    /// Call it before making or taking the pane that goes into the split,
+    /// so that a split refused leaves no pane outside a tab.
+    pub fn check_split(
+        &self,
+        pane_index: usize,
+        request: SplitRequest,
+    ) -> anyhow::Result<SplitDirectionAndSize> {
+        self.inner.lock().check_split(pane_index, request)
+    }
+
+    /// Refuses moving the pane `moved`, which is in this tab, beside the
+    /// pane `beside` as `request` asks, naming the sizes, when the tab
+    /// without `moved` has no room for the split. It is tried on a copy of
+    /// the tab's tree: no pane changes place or size.
+    pub fn check_move_within(
+        &self,
+        moved: PaneId,
+        beside: PaneId,
+        request: SplitRequest,
+    ) -> anyhow::Result<()> {
+        self.inner.lock().check_move_within(moved, beside, request)
+    }
+
     /// Split the pane that has pane_index in the given direction and assign
     /// the right/bottom pane of the newly created split to the provided Pane
     /// instance.  Returns the resultant index of the newly inserted pane.
@@ -1970,7 +1995,39 @@ impl TabInner {
     where
         F: Fn(usize, &Arc<dyn Pane>) -> bool,
     {
+        let (dead_panes, resizes) = self.take_panes_if(f);
+
+        // Apply the revised sizes to the ttys
+        for (pane, size) in resizes {
+            pane.resize(size).ok();
+        }
+
+        if !dead_panes.is_empty() {
+            self.layout_changed();
+        }
+
+        if !dead_panes.is_empty() && kill {
+            let to_kill: Vec<_> = dead_panes.iter().map(|p| p.pane_id()).collect();
+            promise::spawn::spawn_into_main_thread(async move {
+                let mux = Mux::get();
+                for pane_id in to_kill.into_iter() {
+                    mux.remove_pane(pane_id);
+                }
+            })
+            .detach();
+        }
+        dead_panes
+    }
+
+    /// Takes the panes `f` picks out of the tree, giving their space to
+    /// their neighbours. Returns the panes taken, and the size each pane
+    /// left in the tree is to be given; no pane is resized here.
+    fn take_panes_if<F>(&mut self, f: F) -> (Vec<Arc<dyn Pane>>, Vec<(Arc<dyn Pane>, TerminalSize)>)
+    where
+        F: Fn(usize, &Arc<dyn Pane>) -> bool,
+    {
         let mut dead_panes = vec![];
+        let mut resizes = vec![];
         let zoomed_pane = self.zoomed.as_ref().map(|p| p.pane_id());
 
         {
@@ -2031,13 +2088,12 @@ impl TabInner {
                         };
 
                         if let Some(unsplit) = cursor.leaf_mut() {
-                            unsplit.resize(size).ok();
+                            resizes.push((Arc::clone(unsplit), size));
                         } else {
                             self.apply_pane_size(size, &mut cursor);
                         }
                     } else if !dead_panes.is_empty() {
-                        // Apply our revised size to the tty
-                        pane.resize(pane_size).ok();
+                        resizes.push((pane, pane_size));
                     }
 
                     pane_index += 1;
@@ -2061,21 +2117,7 @@ impl TabInner {
             self.active = active_idx.saturating_sub(removed_indices.len());
         }
 
-        if !dead_panes.is_empty() {
-            self.layout_changed();
-        }
-
-        if !dead_panes.is_empty() && kill {
-            let to_kill: Vec<_> = dead_panes.iter().map(|p| p.pane_id()).collect();
-            promise::spawn::spawn_into_main_thread(async move {
-                let mux = Mux::get();
-                for pane_id in to_kill.into_iter() {
-                    mux.remove_pane(pane_id);
-                }
-            })
-            .detach();
-        }
-        dead_panes
+        (dead_panes, resizes)
     }
 
     fn can_close_without_prompting(&mut self, reason: CloseReason) -> bool {
@@ -2333,6 +2375,111 @@ impl TabInner {
         })
     }
 
+    fn check_split(
+        &mut self,
+        pane_index: usize,
+        request: SplitRequest,
+    ) -> anyhow::Result<SplitDirectionAndSize> {
+        let split_info = self
+            .compute_split_size(pane_index, request)
+            .ok_or_else(|| anyhow::anyhow!("invalid pane_index {}; cannot split!", pane_index))?;
+
+        let tab_size = self.size;
+        let fits = split_info.first.rows > 0
+            && split_info.first.cols > 0
+            && split_info.second.rows > 0
+            && split_info.second.cols > 0;
+        let within_tab = split_info.top_of_second() + split_info.second.rows <= tab_size.rows
+            && split_info.left_of_second() + split_info.second.cols <= tab_size.cols;
+        if fits && within_tab {
+            return Ok(split_info);
+        }
+
+        let side = match (request.direction, request.target_is_second) {
+            (SplitDirection::Horizontal, true) => "on the right of",
+            (SplitDirection::Horizontal, false) => "on the left of",
+            (SplitDirection::Vertical, true) => "below",
+            (SplitDirection::Vertical, false) => "above",
+        };
+        let size = match request.size {
+            SplitSize::Cells(1) => "1 cell".to_string(),
+            SplitSize::Cells(n) => format!("{n} cells"),
+            SplitSize::Percent(n) => format!("{n}%"),
+        };
+        let (split, cols, rows) = if request.top_level {
+            (format!("tab {}", self.id), tab_size.cols, tab_size.rows)
+        } else {
+            let pos = self
+                .iter_panes()
+                .into_iter()
+                .nth(pane_index)
+                .ok_or_else(|| {
+                    anyhow::anyhow!("invalid pane_index {}; cannot split!", pane_index)
+                })?;
+            (
+                format!("pane {}", pos.pane.pane_id()),
+                pos.width,
+                pos.height,
+            )
+        };
+        let wanted =
+            format!("no room for a pane of {size} {side} {split}, which is {cols}x{rows} cells");
+        let (first, second) = (&split_info.first, &split_info.second);
+        if !fits {
+            anyhow::bail!(
+                "{wanted}: the split would leave parts of {}x{} and {}x{} cells, \
+                 and each needs at least 1x1 beside the divider",
+                first.cols,
+                first.rows,
+                second.cols,
+                second.rows
+            );
+        }
+        anyhow::bail!(
+            "{wanted}: the split's second part, {}x{} cells from column {} and row {}, \
+             would reach past the tab's {}x{} cells",
+            second.cols,
+            second.rows,
+            split_info.left_of_second(),
+            split_info.top_of_second(),
+            tab_size.cols,
+            tab_size.rows
+        );
+    }
+
+    fn check_move_within(
+        &mut self,
+        moved: PaneId,
+        beside: PaneId,
+        request: SplitRequest,
+    ) -> anyhow::Result<()> {
+        // The split unzooms the tab, as the move will.
+        self.set_zoomed(false);
+        let mut without = TabInner {
+            id: self.id,
+            pane: self.pane.clone(),
+            size: self.size,
+            size_before_zoom: self.size_before_zoom,
+            active: self.active,
+            zoomed: None,
+            title: String::new(),
+            vars: BTreeMap::new(),
+            recency: Recency::default(),
+            mirror: None,
+        };
+        let (taken, _resizes) = without.take_panes_if(|_, pane| pane.pane_id() == moved);
+        if taken.is_empty() {
+            anyhow::bail!("pane {moved} is not in tab {}", self.id);
+        }
+        let index = without
+            .iter_panes_ignoring_zoom()
+            .iter()
+            .find(|pos| pos.pane.pane_id() == beside)
+            .map(|pos| pos.index)
+            .ok_or_else(|| anyhow::anyhow!("pane {beside} is not in tab {}", self.id))?;
+        without.check_split(index, request).map(|_| ())
+    }
+
     fn split_and_insert(
         &mut self,
         pane_index: usize,
@@ -2344,31 +2491,7 @@ impl TabInner {
         }
 
         {
-            let split_info = self
-                .compute_split_size(pane_index, request)
-                .ok_or_else(|| {
-                    anyhow::anyhow!("invalid pane_index {}; cannot split!", pane_index)
-                })?;
-
-            let tab_size = self.size;
-            if split_info.first.rows == 0
-                || split_info.first.cols == 0
-                || split_info.second.rows == 0
-                || split_info.second.cols == 0
-                || split_info.top_of_second() + split_info.second.rows > tab_size.rows
-                || split_info.left_of_second() + split_info.second.cols > tab_size.cols
-            {
-                log::error!(
-                    "No space for split!!! {:#?} height={} width={} top_of_second={} left_of_second={} tab_size={:?}",
-                    split_info,
-                    split_info.height(),
-                    split_info.width(),
-                    split_info.top_of_second(),
-                    split_info.left_of_second(),
-                    tab_size
-                );
-                anyhow::bail!("No space for split!");
-            }
+            let split_info = self.check_split(pane_index, request)?;
 
             let needs_resize = if request.top_level {
                 self.pane.as_ref().unwrap().num_leaves() > 1
@@ -2947,6 +3070,39 @@ mod test {
             vec![(1, 0, 39, 39), (2, 40, 19, 19), (3, 60, 20, 20)]
         );
         tab
+    }
+
+    #[test]
+    fn a_move_within_the_tab_is_checked_on_the_tab_without_the_pane_and_changes_nothing() {
+        let tab = three_columns();
+        let before = columns(&tab);
+        let right = |cells| SplitRequest {
+            direction: SplitDirection::Horizontal,
+            size: SplitSize::Cells(cells),
+            ..Default::default()
+        };
+
+        // Without pane 2, pane 1 keeps its 39 columns: 50 more do not fit.
+        let err = tab.check_move_within(2, 1, right(50)).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "no room for a pane of 50 cells on the right of pane 1, which is 39x24 cells: \
+             the split would leave parts of 0x24 and 50x24 cells, \
+             and each needs at least 1x1 beside the divider"
+        );
+        assert_eq!(columns(&tab), before);
+
+        // Without pane 2, pane 3 has 40 columns, room for 30 more; the tab is
+        // still as it was, every terminal at its size.
+        tab.check_move_within(2, 3, right(30)).unwrap();
+        assert_eq!(columns(&tab), before);
+
+        assert_eq!(
+            tab.check_move_within(4, 3, right(10))
+                .unwrap_err()
+                .to_string(),
+            format!("pane 4 is not in tab {}", tab.tab_id())
+        );
     }
 
     #[test]

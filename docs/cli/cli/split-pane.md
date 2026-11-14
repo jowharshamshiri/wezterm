@@ -63,6 +63,22 @@ To move a pane to a tab of its own, see
 [move-pane-to-new-tab](move-pane-to-new-tab.md); to trade the places of two
 panes, [swap-panes](swap-panes.md).
 
+## No room for the split
+
+Each part of a split needs at least one cell each way, beside the one-cell
+divider. A split that leaves no room for that is refused before anything
+changes: no program is started, and a pane named by `--move-pane-id` stays
+where it was. A pane moved within its own tab is measured for on the tab
+without it, since taking it out gives its room to its neighbours. The
+refusal names the sizes:
+
+```
+$ wsb-wezterm cli split-pane --pane-id 2 --right --cells 20 --move-pane-id 1
+ERROR ... pane 1 cannot move beside pane 2, and stays where it was: no room for
+a pane of 20 cells on the right of pane 2, which is 10x5 cells: the split would
+leave parts of 0x5 and 20x5 cells, and each needs at least 1x1 beside the divider
+```
+
 ## Synopsis
 
 ```console
